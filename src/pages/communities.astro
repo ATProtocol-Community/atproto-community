@@ -5,6 +5,7 @@ import Footer from '../components/Footer.astro';
 import CommunityCard from '../components/CommunityCard.astro';
 import yaml from 'js-yaml';
 import communitiesRaw from '../data/communities.yml?raw';
+import { getProfile } from '../lib/atproto';
 
 interface Community {
   name: string;
@@ -16,6 +17,18 @@ interface Community {
 }
 
 const communities = yaml.load(communitiesRaw) as Community[];
+
+// Fetch Bluesky profile avatars for communities
+const communityProfiles = await Promise.allSettled(
+  communities.map(c => getProfile(c.handle))
+);
+const communityAvatars = new Map<string, string>();
+for (let i = 0; i < communities.length; i++) {
+  const result = communityProfiles[i];
+  if (result.status === 'fulfilled' && result.value.avatar) {
+    communityAvatars.set(communities[i].handle, result.value.avatar);
+  }
+}
 ---
 
 <Base title="Communities" description="Find AT Protocol communities around the world.">
@@ -32,7 +45,7 @@ const communities = yaml.load(communitiesRaw) as Community[];
       <div class="communities-grid">
         {communities.map(c => (
           <div class="community-entry">
-            <CommunityCard {...c} />
+            <CommunityCard {...c} avatar={communityAvatars.get(c.handle)} />
             {c.description && <p class="community-desc">{c.description}</p>}
           </div>
         ))}

@@ -19,9 +19,22 @@ interface Community {
   description?: string;
   bluesky?: string;
   website?: string;
+  extraEventAccounts?: string[];
 }
 
 const communities = yaml.load(communitiesRaw) as Community[];
+
+// Fetch Bluesky profile avatars for communities
+const communityProfiles = await Promise.allSettled(
+  communities.map(c => getProfile(c.handle))
+);
+const communityAvatars = new Map<string, string>();
+for (let i = 0; i < communities.length; i++) {
+  const result = communityProfiles[i];
+  if (result.status === 'fulfilled' && result.value.avatar) {
+    communityAvatars.set(communities[i].handle, result.value.avatar);
+  }
+}
 
 // Fetch blog posts from ATProto via Content Collection
 let posts: Array<{
@@ -74,10 +87,11 @@ try {
   ];
 }
 
-// Build event account list: atmosphere.community + all community handles
+// Build event account list: atmosphere.community + all community handles + extra accounts
 const eventAccounts = [
   'atmosphere.community',
   ...communities.map(c => c.handle),
+  ...communities.flatMap(c => c.extraEventAccounts ?? []),
 ];
 
 // Fetch events from ATProto (community.lexicon.calendar.event)
@@ -184,7 +198,7 @@ const highlights = [
       </div>
       <div class="community-row">
         {communities.slice(0, 8).map(c => (
-          <CommunityCard {...c} />
+          <CommunityCard {...c} avatar={communityAvatars.get(c.handle)} />
         ))}
       </div>
     </div>

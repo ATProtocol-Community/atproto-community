@@ -11,14 +11,16 @@ interface Community {
   name: string;
   handle: string;
   location: string;
+  extraEventAccounts?: string[];
 }
 
 const communities = yaml.load(communitiesRaw) as Community[];
 
-// Build event account list: atmosphere.community + all community handles
+// Build event account list: atmosphere.community + all community handles + extra accounts
 const eventAccounts = [
   'atmosphere.community',
   ...communities.map(c => c.handle),
+  ...communities.flatMap(c => c.extraEventAccounts ?? []),
 ];
 
 // Fetch events from ATProto (community.lexicon.calendar.event)

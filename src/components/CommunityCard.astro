@@ -6,13 +6,14 @@ interface Props {
   description?: string;
   bluesky?: string;
   website?: string;
+  avatar?: string;
 }
 
-const { name, handle, location, description, bluesky, website } = Astro.props;
+const { name, handle, location, description, bluesky, website, avatar } = Astro.props;
 
-// Generate initials from the handle for the colored circle
+// Generate initials from the handle for the colored circle (fallback when no avatar)
 const abbr = handle
-  .replace(/\.(bsky\.social|atproto\.camp|atprotocol\.community)$/, '')
+  .replace(/\.(bsky\.social|atproto\.camp|atprotocol\.community|atprotocol\.space)$/, '')
   .replace(/^atproto\.?/, '')
   .slice(0, 3)
   .toUpperCase();
@@ -27,9 +28,13 @@ function handleColor(h: string): string {
 ---
 
 <div class="community-pill">
-  <span class="community-pill__dot" style={`background: ${handleColor(handle)}`} aria-hidden="true">
-    {abbr}
-  </span>
+  {avatar ? (
+    <img src={avatar} alt="" class="community-pill__avatar" width="28" height="28" loading="lazy" />
+  ) : (
+    <span class="community-pill__dot" style={`background: ${handleColor(handle)}`} aria-hidden="true">
+      {abbr}
+    </span>
+  )}
   <div class="community-pill__text">
     <span class="community-pill__name">{name}</span>
     <span class="community-pill__location">{location}</span>
@@ -52,6 +57,14 @@ function handleColor(h: string): string {
     border: 1px solid var(--color-border);
     border-radius: var(--radius-pill);
     padding: var(--space-xs) var(--space-md) var(--space-xs) var(--space-xs);
+  }
+
+  .community-pill__avatar {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
   }
 
   .community-pill__dot {
