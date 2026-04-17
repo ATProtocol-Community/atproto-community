@@ -1,10 +1,10 @@
 ---
 const navLinks = [
-  { href: `${import.meta.env.BASE_URL}/`, label: 'Home' },
-  { href: `${import.meta.env.BASE_URL}/about`, label: 'About' },
-  { href: `${import.meta.env.BASE_URL}/community-content`, label: 'Content' },
-  { href: `${import.meta.env.BASE_URL}/events`, label: 'Events' },
-  { href: `${import.meta.env.BASE_URL}/communities`, label: 'Communities' },
+  { href: '/', label: 'Home' },
+  { href: '/about', label: 'About' },
+  { href: '/community-content', label: 'Content' },
+  { href: '/events', label: 'Events' },
+  { href: '/communities', label: 'Communities' },
 ];
 
 const currentPath = Astro.url.pathname;
@@ -12,7 +12,7 @@ const currentPath = Astro.url.pathname;
 
 <header class="site-header">
   <nav class="site-nav container" aria-label="Main navigation">
-    <a href={`${import.meta.env.BASE_URL}/`} class="site-logo" aria-label="atmosphere.community home">
+    <a href="/" class="site-logo" aria-label="atmosphere.community home">
       <span class="logo-cloud" aria-hidden="true"></span>
       <span class="logo-text"><span class="logo-at">@</span>atmosphere community</span>
     </a>

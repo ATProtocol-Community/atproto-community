@@ -17,10 +17,12 @@ const formattedDate = eventDate.toLocaleDateString('en-US', {
   weekday: 'short',
   month: 'short',
   day: 'numeric',
+  timeZone: 'UTC',
 });
 const formattedTime = eventDate.toLocaleTimeString('en-US', {
   hour: 'numeric',
   minute: '2-digit',
+  timeZone: 'UTC',
 });
 
 const modeLabel = mode === 'online' ? 'Online' : mode === 'hybrid' ? 'Hybrid' : location ?? 'In Person';
@@ -33,7 +35,7 @@ const sourceLabel = source ? `@${source.replace(/\.bsky\.social$/, '')}` : undef
 <article class="event-card card">
   <a href={href} class="event-card__link" rel="noopener noreferrer" target="_blank">
     <p class="event-card__date">
-      <time datetime={date}>{formattedDate} · {formattedTime}</time>
+      <time datetime={date} data-event-time>{formattedDate} · {formattedTime} UTC</time>
     </p>
     <h3 class="event-card__name">{name}</h3>
     {description && <p class="event-card__desc">{description}</p>}

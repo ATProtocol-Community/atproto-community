@@ -35,8 +35,8 @@ import '../styles/global.css';
     {ogImage && <meta property="og:image" content={ogImage} />}
 
     <!-- Favicons -->
-    <link rel="icon" type="image/webp" href={`${import.meta.env.BASE_URL}/goose.webp`} />
-    <link rel="apple-touch-icon" href={`${import.meta.env.BASE_URL}/goose.webp`} />
+    <link rel="icon" type="image/webp" href="/goose.webp" />
+    <link rel="apple-touch-icon" href="/goose.webp" />
 
     <!-- Fonts: Bitter (display) + Source Sans 3 (body) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
@@ -53,5 +53,32 @@ import '../styles/global.css';
       <slot />
     </main>
     <slot name="footer" />
+    <script>
+      // Localize event times to the user's timezone.
+      // Falls back to the UTC time rendered at build time if anything fails.
+      document.querySelectorAll('time[data-event-time]').forEach((el) => {
+        try {
+          const iso = el.getAttribute('datetime');
+          if (!iso) return;
+          const d = new Date(iso);
+          if (isNaN(d.getTime())) return;
+          const date = d.toLocaleDateString('en-US', {
+            weekday: 'short',
+            month: 'short',
+            day: 'numeric',
+          });
+          const time = d.toLocaleTimeString('en-US', {
+            hour: 'numeric',
+            minute: '2-digit',
+          });
+          const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
+          const short = d.toLocaleTimeString('en-US', { timeZoneName: 'short' })
+            .replace(/.*\s/, ''); // extract "PDT", "EST", etc.
+          el.textContent = `${date} · ${time} ${short}`;
+        } catch {
+          // Keep the UTC fallback rendered at build time
+        }
+      });
+    </script>
   </body>
 </html>
