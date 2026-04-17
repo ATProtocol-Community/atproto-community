@@ -10,8 +10,8 @@ import AppCard from '../components/AppCard.astro';
 import yaml from 'js-yaml';
 import communitiesRaw from '../data/communities.yml?raw';
 import appsRaw from '../data/apps.yml?raw';
-import { getCollection } from 'astro:content';
 import { getProfile, excerpt } from '../lib/atproto';
+import { fetchBlogPosts } from '../lib/blog';
 import { fetchEvents } from '../lib/events';
 
 interface Community {
@@ -47,20 +47,16 @@ let posts: Array<{
 }> = [];
 
 try {
-  const blogPosts = await getCollection('blog');
-
-  // Prefer Offprint articles (blog.atmosphere.community publication)
+  // Fetch only Offprint articles directly via XRPC
   const OFFPRINT_PUB = 'at://did:plc:lehcqqkwzcwvjvw66uthu5oq/site.standard.publication/3mjnpilwnrp2v';
-  const offprintPosts = blogPosts.filter(p => p.data.site === OFFPRINT_PUB && p.data.title);
-  // Fall back to all posts if Offprint has fewer than 3 articles
-  const sourcePosts = offprintPosts.length >= 3 ? offprintPosts : blogPosts.filter(p => p.data.title);
+  const blogPosts = await fetchBlogPosts({
+    handle: 'atmosphere.community',
+    pds: 'https://hydnum.us-west.host.bsky.network',
+    publication: OFFPRINT_PUB,
+  });
 
-  const sorted = sourcePosts
-    .sort((a, b) => {
-      const dateA = a.data.publishedAt ? new Date(a.data.publishedAt).getTime() : 0;
-      const dateB = b.data.publishedAt ? new Date(b.data.publishedAt).getTime() : 0;
-      return dateB - dateA;
-    })
+  const sorted = blogPosts
+    .sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime())
     .slice(0, 6);
 
   // Resolve the blog author profile
@@ -68,17 +64,13 @@ try {
   const authorName = profile.displayName || `@${profile.handle}`;
 
   posts = sorted.map(post => {
-    const postUrl = post.data.url
-      || (post.data.path ? `https://blog.atmosphere.community${post.data.path}` : 'https://blog.atmosphere.community');
     return {
-      title: post.data.title ?? 'Untitled',
-      excerpt: excerpt(post.data.textContent ?? post.data.description, 150),
+      title: post.title,
+      excerpt: excerpt(post.textContent ?? post.description, 150),
       author: authorName,
-      date: post.data.publishedAt
-        ? new Date(post.data.publishedAt).toISOString().split('T')[0]
-        : '',
-      href: postUrl,
-      tag: post.data.tags?.[0],
+      date: post.publishedAt.toISOString().split('T')[0],
+      href: post.url ?? 'https://blog.atmosphere.community',
+      tag: post.tags?.[0],
     };
   });
 } catch (e) {
