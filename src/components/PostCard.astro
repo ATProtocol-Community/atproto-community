@@ -6,9 +6,11 @@ interface Props {
   date: string;
   href: string;
   tag?: string;
+  avatarUrl?: string;
+  community?: string;
 }
 
-const { title, excerpt, author, date, href, tag } = Astro.props;
+const { title, excerpt, author, date, href, tag, avatarUrl, community } = Astro.props;
 
 // Generate a deterministic color from the author handle
 function authorColor(name: string): string {
@@ -20,7 +22,7 @@ function authorColor(name: string): string {
 
 const initials = author
   .replace(/^@/, '')
-  .split(/[.\-_]/)
+  .split(/[.\-_ ]/)
   .slice(0, 2)
   .map(s => s[0]?.toUpperCase() ?? '')
   .join('');
@@ -28,14 +30,19 @@ const initials = author
 
 <article class="post-card">
   <a href={href} class="post-card__link" rel="noopener noreferrer" target="_blank">
-    <div class="post-card__avatar" style={`background: ${authorColor(author)}`} aria-hidden="true">
-      {initials}
-    </div>
+    {avatarUrl ? (
+      <img src={avatarUrl} alt="" class="post-card__avatar-img" width="36" height="36" loading="lazy" />
+    ) : (
+      <div class="post-card__avatar" style={`background: ${authorColor(author)}`} aria-hidden="true">
+        {initials}
+      </div>
+    )}
     <div class="post-card__body">
       <h3 class="post-card__title">{title}</h3>
       <p class="post-card__excerpt">{excerpt}</p>
       <div class="post-card__meta">
         {tag && <span class="badge badge--tag">{tag}</span>}
+        {community && <span class="badge badge--location">{community}</span>}
         <span class="post-card__author">{author}</span>
         <span class="post-card__date">
           <time datetime={date}>{new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</time>
@@ -62,6 +69,14 @@ const initials = author
     padding: var(--space-base);
     text-decoration: none;
     color: inherit;
+  }
+
+  .post-card__avatar-img {
+    flex-shrink: 0;
+    width: 36px;
+    height: 36px;
+    border-radius: var(--radius-sm);
+    object-fit: cover;
   }
 
   .post-card__avatar {

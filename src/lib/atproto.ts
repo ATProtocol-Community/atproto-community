@@ -55,7 +55,16 @@ export async function getProfile(handleOrDid: string): Promise<AtProfile> {
  */
 export function excerpt(text: string | undefined, maxLen = 150): string {
   if (!text) return '';
-  const cleaned = text.replace(/\s+/g, ' ').trim();
+  const cleaned = text
+    .replace(/^#{1,6}\s+/gm, '')       // heading markers
+    .replace(/\*\*([^*]+)\*\*/g, '$1')  // bold
+    .replace(/\*([^*]+)\*/g, '$1')      // italic
+    .replace(/\[([^\]]+)\]\([^)]+\)/g, '$1') // links
+    .replace(/[`~]/g, '')               // code/strikethrough markers
+    .replace(/^[-*>]\s+/gm, '')         // list items, blockquotes
+    .replace(/!\[[^\]]*\]\([^)]+\)/g, '') // images
+    .replace(/\s+/g, ' ')
+    .trim();
   if (cleaned.length <= maxLen) return cleaned;
   return cleaned.slice(0, maxLen).replace(/\s+\S*$/, '') + '…';
 }

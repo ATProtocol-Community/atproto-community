@@ -11,7 +11,7 @@ import communitiesRaw from '../data/communities.yml?raw';
 import { getProfile, excerpt } from '../lib/atproto';
 import { fetchBlogPosts } from '../lib/blog';
 import { fetchEvents } from '../lib/events';
-import { preflight } from '../lib/preflight';
+import { fetchSharedContent } from '../lib/shared-content';
 import { preflight } from '../lib/preflight';
 
 interface Community {
@@ -60,10 +60,45 @@ const posts = sortedPosts.map(post => ({
   title: post.title,
   excerpt: excerpt(post.textContent ?? post.description, 150),
   author: authorName,
+  avatarUrl: profile.avatar,
   date: post.publishedAt.toISOString().split('T')[0],
   href: post.url ?? 'https://blog.atmosphere.community',
   tag: post.tags?.[0],
+  community: '@atmosphere.community',
 }));
+
+// Fetch shared content from atmosphere.community + all community accounts
+const sharedContentAccounts = [
+  'atmosphere.community',
+  ...communities.map(c => c.handle),
+];
+const sharedPosts = await fetchSharedContent(sharedContentAccounts);
+
+// Merge Offprint posts + shared content, dedupe by title, sort by date, take first 6
+const allPosts = [
+  ...posts.map(p => ({ ...p, isShared: false })),
+  ...sharedPosts.map(p => ({
+    title: p.title,
+    excerpt: p.excerpt,
+    author: p.author.displayName || `@${p.author.handle}`,
+    avatarUrl: p.author.avatar,
+    date: new Date(p.date).toISOString().split('T')[0],
+    href: p.href,
+    tag: p.tags?.[0],
+    community: `@${p.community}`,
+    isShared: true,
+  })),
+];
+const seenTitles = new Set<string>();
+const mergedPosts = allPosts
+  .filter(p => {
+    const key = p.title.toLowerCase().trim();
+    if (seenTitles.has(key)) return false;
+    seenTitles.add(key);
+    return true;
+  })
+  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
+  .slice(0, 6);
 
 // Build event account list: atmosphere.community + all community handles
 const eventAccounts = [
@@ -110,16 +145,16 @@ const highlights = [
 
   <Hero subscriberCount={1000} groupCount={communities.length} />
 
-  <!-- Latest Posts -->
+  <!-- Latest Posts & Community Content -->
   <section class="section" aria-labelledby="posts-heading">
     <div class="container">
       <div class="section-header">
-        <h2 id="posts-heading" class="section__title">Latest from the blog</h2>
-        <a href="https://blog.atmosphere.community" class="section__more">Read on the blog →</a>
+        <h2 id="posts-heading" class="section__title">Latest from the community</h2>
+        <a href={`${import.meta.env.BASE_URL}/community-content`} class="section__more">See all →</a>
       </div>
       <div class="posts-list">
-        {posts.length > 0 ? (
-          posts.map(post => (
+        {mergedPosts.length > 0 ? (
+          mergedPosts.map(post => (
             <PostCard {...post} />
           ))
         ) : (

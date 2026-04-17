@@ -1,0 +1,132 @@
+---
+import Base from '../layouts/Base.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import PostCard from '../components/PostCard.astro';
+import yaml from 'js-yaml';
+import communitiesRaw from '../data/communities.yml?raw';
+import { getProfile, excerpt } from '../lib/atproto';
+import { fetchBlogPosts } from '../lib/blog';
+import { fetchSharedContent } from '../lib/shared-content';
+import { preflight } from '../lib/preflight';
+
+interface Community {
+  name: string;
+  handle: string;
+  location: string;
+}
+
+const communities = yaml.load(communitiesRaw) as Community[];
+
+await preflight();
+
+// Fetch Offprint posts
+const OFFPRINT_PUB = 'at://did:plc:lehcqqkwzcwvjvw66uthu5oq/site.standard.publication/3mjnpilwnrp2v';
+const blogPosts = await fetchBlogPosts({
+  handle: 'atmosphere.community',
+  pds: 'https://hydnum.us-west.host.bsky.network',
+  publication: OFFPRINT_PUB,
+});
+
+const profile = await getProfile('atmosphere.community');
+const authorName = profile.displayName || `@${profile.handle}`;
+
+const offprintPosts = blogPosts.map(post => ({
+  title: post.title,
+  excerpt: excerpt(post.textContent ?? post.description, 150),
+  author: authorName,
+  avatarUrl: profile.avatar,
+  date: post.publishedAt.toISOString().split('T')[0],
+  href: post.url ?? 'https://blog.atmosphere.community',
+  tag: post.tags?.[0],
+  community: '@atmosphere.community',
+}));
+
+// Fetch shared content from all community accounts
+const sharedContentAccounts = [
+  'atmosphere.community',
+  ...communities.map(c => c.handle),
+];
+const sharedPosts = await fetchSharedContent(sharedContentAccounts);
+
+const sharedPostCards = sharedPosts.map(p => ({
+  title: p.title,
+  excerpt: p.excerpt,
+  author: p.author.displayName || `@${p.author.handle}`,
+  avatarUrl: p.author.avatar,
+  date: new Date(p.date).toISOString().split('T')[0],
+  href: p.href,
+  tag: p.tags?.[0],
+  community: `@${p.community}`,
+}));
+
+// Merge, dedupe by title, sort by date
+const allPosts = [...offprintPosts, ...sharedPostCards];
+const seenTitles = new Set<string>();
+const mergedPosts = allPosts
+  .filter(p => {
+    const key = p.title.toLowerCase().trim();
+    if (seenTitles.has(key)) return false;
+    seenTitles.add(key);
+    return true;
+  })
+  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime());
+---
+
+<Base title="Community Content" description="Blog posts and articles from across the AT Protocol community.">
+  <Header slot="header" />
+
+  <section class="content-page section">
+    <div class="container">
+      <h1>Community content</h1>
+      <p class="content-sub">
+        Blog posts and articles shared by community members across the Atmosphere.
+        Content is aggregated from the atmosphere.community <a href="https://blog.atmosphere.community" rel="noopener noreferrer" target="_blank">Offprint</a>
+        and community accounts via <a href="https://opensocial.community" rel="noopener noreferrer" target="_blank">OpenSocial</a>.
+      </p>
+
+      {mergedPosts.length > 0 ? (
+        <div class="posts-list">
+          {mergedPosts.map(post => (
+            <PostCard {...post} />
+          ))}
+        </div>
+      ) : (
+        <div class="content-empty">
+          <p>No community content yet. <a href="https://blog.atmosphere.community">Visit the blog</a> or share content via your community account.</p>
+        </div>
+      )}
+    </div>
+  </section>
+
+  <Footer slot="footer" />
+</Base>
+
+<style>
+  .content-page h1 {
+    margin-bottom: var(--space-sm);
+  }
+
+  .content-sub {
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    max-width: 55ch;
+    line-height: var(--leading-relaxed);
+  }
+
+  .posts-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+    margin-top: var(--space-xl);
+  }
+
+  .content-empty {
+    margin-top: var(--space-xl);
+    padding: var(--space-2xl);
+    text-align: center;
+    color: var(--color-text-secondary);
+    background: var(--neutral-100);
+    border-radius: var(--radius-md);
+  }
+</style>
