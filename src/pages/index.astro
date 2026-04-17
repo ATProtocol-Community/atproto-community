@@ -178,7 +178,7 @@ const highlights = [
     <div class="container">
       <div class="section-header">
         <h2 id="events-heading" class="section__title">Upcoming events</h2>
-        <a href="/events" class="section__more">See all events →</a>
+        <a href={`${import.meta.env.BASE_URL}/events`} class="section__more">See all events →</a>
       </div>
       <div class="grid-2">
         {events.map(event => (
@@ -193,7 +193,7 @@ const highlights = [
     <div class="container">
       <div class="section-header">
         <h2 id="communities-heading" class="section__title">Local communities</h2>
-        <a href="/communities" class="section__more">See all →</a>
+        <a href={`${import.meta.env.BASE_URL}/communities`} class="section__more">See all →</a>
       </div>
       <div class="community-row">
         {communities.slice(0, 8).map(c => (
@@ -208,7 +208,7 @@ const highlights = [
     <div class="container">
       <div class="section-header">
         <h2 id="apps-heading" class="section__title">Apps built on AT Protocol</h2>
-        <a href="/apps" class="section__more">See all apps →</a>
+        <a href={`${import.meta.env.BASE_URL}/apps`} class="section__more">See all apps →</a>
       </div>
       <div class="grid-2">
         {apps.slice(0, 6).map(app => (

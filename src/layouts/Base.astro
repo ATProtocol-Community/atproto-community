@@ -35,8 +35,8 @@ import '../styles/global.css';
     {ogImage && <meta property="og:image" content={ogImage} />}
 
     <!-- Favicons -->
-    <link rel="icon" type="image/webp" href="/goose.webp" />
-    <link rel="apple-touch-icon" href="/goose.webp" />
+    <link rel="icon" type="image/webp" href={`${import.meta.env.BASE_URL}/goose.webp`} />
+    <link rel="apple-touch-icon" href={`${import.meta.env.BASE_URL}/goose.webp`} />
 
     <!-- Fonts: Bitter (display) + Source Sans 3 (body) -->
     <link rel="preconnect" href="https://fonts.googleapis.com" />
