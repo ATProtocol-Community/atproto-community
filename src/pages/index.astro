@@ -187,7 +187,7 @@ const highlights = [
         <a href="/communities" class="section__more">See all →</a>
       </div>
       <div class="community-row">
-        {communities.slice(0, 10).map(c => (
+        {communities.slice(0, 15).map(c => (
           <CommunityCard {...c} avatar={communityAvatars.get(c.handle)} />
         ))}
       </div>
