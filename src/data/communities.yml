@@ -21,8 +21,6 @@
   location: Colorado, US
   description: Colorado ATProtocol user group
   bluesky: https://bsky.app/profile/colorado.atprotocol.space
-  extraEventAccounts:
-    - pyxorium.com
 
 - name: ATProto Brazil
   handle: atproto.com.br

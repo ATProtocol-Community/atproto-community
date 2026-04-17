@@ -21,7 +21,6 @@ interface Community {
   description?: string;
   bluesky?: string;
   website?: string;
-  extraEventAccounts?: string[];
 }
 
 const communities = yaml.load(communitiesRaw) as Community[];
@@ -66,11 +65,10 @@ const posts = sortedPosts.map(post => ({
   tag: post.tags?.[0],
 }));
 
-// Build event account list: atmosphere.community + all community handles + extra accounts
+// Build event account list: atmosphere.community + all community handles
 const eventAccounts = [
   'atmosphere.community',
   ...communities.map(c => c.handle),
-  ...communities.flatMap(c => c.extraEventAccounts ?? []),
 ];
 
 // Fetch events from ATProto (community.lexicon.calendar.event)

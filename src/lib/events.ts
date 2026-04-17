@@ -237,9 +237,18 @@ export async function fetchEvents(
     }
   }
 
-  // Filter to upcoming events and sort by date
+  // Filter to upcoming events, deduplicate, and sort by date
   const now = new Date();
-  return allEvents
+  const upcoming = allEvents
     .filter(e => new Date(e.date) >= now)
     .sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+
+  // Deduplicate by name + start time (same event posted by multiple accounts)
+  const seen = new Set<string>();
+  return upcoming.filter(e => {
+    const key = `${e.name.toLowerCase().trim()}|${e.date}`;
+    if (seen.has(key)) return false;
+    seen.add(key);
+    return true;
+  });
 }

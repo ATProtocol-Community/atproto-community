@@ -12,16 +12,14 @@ interface Community {
   name: string;
   handle: string;
   location: string;
-  extraEventAccounts?: string[];
 }
 
 const communities = yaml.load(communitiesRaw) as Community[];
 
-// Build event account list: atmosphere.community + all community handles + extra accounts
+// Build event account list: atmosphere.community + all community handles
 const eventAccounts = [
   'atmosphere.community',
   ...communities.map(c => c.handle),
-  ...communities.flatMap(c => c.extraEventAccounts ?? []),
 ];
 
 // Verify core services are reachable
