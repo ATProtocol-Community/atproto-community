@@ -1,0 +1,67 @@
+name: Add a Community
+description: Request to add a new AT Protocol community to the directory
+title: "[Community] "
+labels: ["community"]
+body:
+  - type: dropdown
+    id: community-type
+    attributes:
+      label: Is this an existing community or a new one?
+      options:
+        - Existing community — already active with members
+        - New community — I'd like to start one
+    validations:
+      required: true
+
+  - type: input
+    id: name
+    attributes:
+      label: Community Name
+      description: The display name for the community
+      placeholder: "e.g. ATProto Seattle"
+    validations:
+      required: true
+
+  - type: input
+    id: handle
+    attributes:
+      label: AT Protocol Handle
+      description: The community's ATProto handle (used to fetch events)
+      placeholder: "e.g. seattle.atprotocol.community"
+    validations:
+      required: false
+
+  - type: input
+    id: location
+    attributes:
+      label: Location
+      description: City, state/region, or country
+      placeholder: "e.g. Seattle, WA"
+    validations:
+      required: true
+
+  - type: textarea
+    id: description
+    attributes:
+      label: Description
+      description: A short description of the community
+      placeholder: "e.g. Seattle ATProtocol user group"
+    validations:
+      required: true
+
+  - type: input
+    id: bluesky
+    attributes:
+      label: Bluesky Profile URL
+      description: Link to the community's Bluesky profile
+      placeholder: "e.g. https://bsky.app/profile/seattle.atprotocol.community"
+    validations:
+      required: false
+
+  - type: textarea
+    id: context
+    attributes:
+      label: Additional Context
+      description: Anything else we should know — links, how to get involved, etc.
+    validations:
+      required: false
