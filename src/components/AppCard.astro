@@ -23,13 +23,14 @@ const initials = name
   .slice(0, 2)
   .map(w => w[0]?.toUpperCase() ?? '')
   .join('');
+const logoSrc = logo?.startsWith('/') ? `${import.meta.env.BASE_URL}${logo}` : logo;
 ---
 
 <article class="app-card">
   <a href={url} class="app-card__link" rel="noopener noreferrer" target="_blank">
     <div class="app-card__icon-wrap">
-      {logo ? (
-        <img src={logo} alt="" class="app-card__logo" width="40" height="40" loading="lazy" />
+      {logoSrc ? (
+        <img src={logoSrc} alt="" class="app-card__logo" width="40" height="40" loading="lazy" />
       ) : (
         <span class="app-card__icon" style={`background: ${appColor(name)}`} aria-hidden="true">{initials}</span>
       )}
