@@ -56,21 +56,6 @@ src/
 
 ## Adding content
 
-### Add a new app
-
-Edit `src/data/apps.yml` and add an entry:
-
-```yaml
-- name: My App
-  description: A short 1-2 sentence description of what the app does.
-  url: https://myapp.example
-  bluesky: https://bsky.app/profile/myapp.example  # optional
-  category: Social  # Social, Events, Publishing, Developer Tools, Tools, Identity, Community
-  logo: /images/apps/myapp.png  # optional — drop image in public/images/apps/
-```
-
-If you include a logo, place the image file (PNG, SVG, or WebP, ideally 180×180) in `public/images/apps/`. If omitted, a colored-initial icon is generated automatically.
-
 ### Add a new community
 
 Edit `src/data/communities.yml` and add an entry:

@@ -6,10 +6,8 @@ import Hero from '../components/Hero.astro';
 import PostCard from '../components/PostCard.astro';
 import EventCard from '../components/EventCard.astro';
 import CommunityCard from '../components/CommunityCard.astro';
-import AppCard from '../components/AppCard.astro';
 import yaml from 'js-yaml';
 import communitiesRaw from '../data/communities.yml?raw';
-import appsRaw from '../data/apps.yml?raw';
 import { getProfile, excerpt } from '../lib/atproto';
 import { fetchBlogPosts } from '../lib/blog';
 import { fetchEvents } from '../lib/events';
@@ -24,17 +22,6 @@ interface Community {
 }
 
 const communities = yaml.load(communitiesRaw) as Community[];
-
-interface App {
-  name: string;
-  description: string;
-  url: string;
-  bluesky?: string;
-  category?: string;
-  logo?: string;
-}
-
-const apps = yaml.load(appsRaw) as App[];
 
 // Fetch blog posts from ATProto via Content Collection
 let posts: Array<{
@@ -198,21 +185,6 @@ const highlights = [
       <div class="community-row">
         {communities.slice(0, 8).map(c => (
           <CommunityCard {...c} />
-        ))}
-      </div>
-    </div>
-  </section>
-
-  <!-- Apps -->
-  <section class="section" aria-labelledby="apps-heading">
-    <div class="container">
-      <div class="section-header">
-        <h2 id="apps-heading" class="section__title">Apps built on AT Protocol</h2>
-        <a href={`${import.meta.env.BASE_URL}/apps`} class="section__more">See all apps →</a>
-      </div>
-      <div class="grid-2">
-        {apps.slice(0, 6).map(app => (
-          <AppCard {...app} />
         ))}
       </div>
     </div>
