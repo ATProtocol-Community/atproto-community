@@ -1,0 +1,225 @@
+---
+interface Props {
+  subscriberCount?: number;
+  groupCount?: number;
+}
+
+const { subscriberCount = 1000, groupCount = 10 } = Astro.props;
+---
+
+<section class="hero" aria-labelledby="hero-heading">
+  <div class="hero-clouds" aria-hidden="true">
+    <div class="cloud cloud--1"></div>
+    <div class="cloud cloud--2"></div>
+    <div class="cloud cloud--3"></div>
+  </div>
+
+  <div class="hero-content container">
+    <h1 id="hero-heading">The community hub for the Atmosphere</h1>
+    <p class="hero-sub">
+      Connecting people and projects building on AT Protocol.
+      Blog posts, events, and local communities — all in one place.
+    </p>
+
+    <div class="hero-actions">
+      <a href="https://blog.atmosphere.community" class="btn btn--hero">
+        Subscribe to the newsletter
+      </a>
+      <a href="https://bsky.app/profile/atmosphere.community" class="hero-secondary" rel="noopener noreferrer" target="_blank">
+        Follow on Bluesky →
+      </a>
+    </div>
+
+    <div class="hero-stats" role="list">
+      <div class="hero-stat" role="listitem">
+        <span class="hero-stat__number">{subscriberCount.toLocaleString()}+</span>
+        <span class="hero-stat__label">Subscribers</span>
+      </div>
+      <div class="hero-stat" role="listitem">
+        <span class="hero-stat__number">{groupCount}</span>
+        <span class="hero-stat__label">Regional Groups</span>
+      </div>
+    </div>
+  </div>
+</section>
+
+<style>
+  .hero {
+    position: relative;
+    overflow: hidden;
+    background: var(--color-primary);
+    padding-block: var(--space-3xl) var(--space-3xl);
+  }
+
+  @media (min-width: 640px) {
+    .hero {
+      padding-block: var(--space-4xl);
+    }
+  }
+
+  /* --- CSS clouds --- */
+  .hero-clouds {
+    position: absolute;
+    inset: 0;
+    pointer-events: none;
+  }
+
+  .cloud {
+    position: absolute;
+    border-radius: 999px;
+    background: oklch(100% 0 0 / 0.08);
+  }
+  .cloud::before,
+  .cloud::after {
+    content: '';
+    position: absolute;
+    border-radius: 50%;
+    background: oklch(100% 0 0 / 0.08);
+  }
+
+  .cloud--1 {
+    width: 160px;
+    height: 48px;
+    top: 20%;
+    left: -30px;
+  }
+  .cloud--1::before {
+    width: 56px;
+    height: 56px;
+    top: -28px;
+    left: 28px;
+  }
+  .cloud--1::after {
+    width: 40px;
+    height: 40px;
+    top: -18px;
+    left: 72px;
+  }
+
+  .cloud--2 {
+    width: 120px;
+    height: 36px;
+    top: 60%;
+    right: 5%;
+  }
+  .cloud--2::before {
+    width: 44px;
+    height: 44px;
+    top: -22px;
+    left: 22px;
+  }
+  .cloud--2::after {
+    width: 32px;
+    height: 32px;
+    top: -14px;
+    left: 56px;
+  }
+
+  .cloud--3 {
+    width: 90px;
+    height: 28px;
+    bottom: 15%;
+    left: 40%;
+  }
+  .cloud--3::before {
+    width: 36px;
+    height: 36px;
+    top: -18px;
+    left: 14px;
+  }
+  .cloud--3::after {
+    width: 24px;
+    height: 24px;
+    top: -10px;
+    left: 42px;
+  }
+
+  /* --- Content --- */
+  .hero-content {
+    position: relative;
+    z-index: 1;
+  }
+
+  .hero h1 {
+    color: var(--color-text-on-primary);
+    max-width: 28ch;
+  }
+
+  .hero-sub {
+    color: oklch(100% 0 0 / 0.75);
+    font-size: var(--text-base);
+    max-width: 50ch;
+    margin-top: var(--space-md);
+    line-height: var(--leading-relaxed);
+  }
+
+  .hero-actions {
+    display: flex;
+    align-items: center;
+    gap: var(--space-lg);
+    margin-top: var(--space-xl);
+    flex-wrap: wrap;
+  }
+
+  .btn--hero {
+    background: var(--color-text-on-primary);
+    color: var(--color-primary);
+    padding: var(--space-md) var(--space-lg);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: 600;
+    text-decoration: none;
+    transition: opacity 0.15s ease;
+  }
+  .btn--hero:hover {
+    opacity: 0.9;
+    color: var(--color-primary);
+  }
+
+  .hero-secondary {
+    color: oklch(100% 0 0 / 0.85);
+    font-size: var(--text-sm);
+    font-weight: 500;
+    text-decoration: none;
+  }
+  .hero-secondary:hover {
+    color: var(--color-text-on-primary);
+  }
+
+  .hero-stats {
+    display: flex;
+    gap: var(--space-2xl);
+    margin-top: var(--space-2xl);
+    padding-top: var(--space-lg);
+    border-top: 1px solid oklch(100% 0 0 / 0.12);
+  }
+
+  .hero-stat__number {
+    display: block;
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: var(--text-xl);
+    color: var(--color-text-on-primary);
+  }
+
+  .hero-stat__label {
+    font-size: var(--text-xs);
+    text-transform: uppercase;
+    letter-spacing: 0.06em;
+    color: oklch(100% 0 0 / 0.55);
+    font-weight: 600;
+  }
+
+  @media (max-width: 640px) {
+    .hero {
+      padding-block: var(--space-2xl) var(--space-xl);
+    }
+    .hero-stats {
+      gap: var(--space-xl);
+    }
+    .cloud--3 {
+      display: none;
+    }
+  }
+</style>

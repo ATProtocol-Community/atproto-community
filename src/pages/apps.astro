@@ -1,0 +1,80 @@
+---
+import Base from '../layouts/Base.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import AppCard from '../components/AppCard.astro';
+import yaml from 'js-yaml';
+import appsRaw from '../data/apps.yml?raw';
+
+interface App {
+  name: string;
+  description: string;
+  url: string;
+  bluesky?: string;
+  category?: string;
+  logo?: string;
+}
+
+const allApps = yaml.load(appsRaw) as App[];
+
+// Group apps by category
+const categories = [...new Set(allApps.map(a => a.category ?? 'Other'))];
+const grouped = categories.map(cat => ({
+  name: cat,
+  apps: allApps.filter(a => (a.category ?? 'Other') === cat),
+}));
+---
+
+<Base title="Apps" description="Apps and tools built on AT Protocol — social, publishing, developer tools, and more.">
+  <Header slot="header" />
+
+  <section class="apps-page section">
+    <div class="container">
+      <h1>Apps</h1>
+      <p class="apps-sub">
+        Apps and tools built on AT Protocol. Your account works across all of them — one identity, many experiences.
+      </p>
+
+      {grouped.map(group => (
+        <div class="apps-group">
+          <h2 class="apps-group__title">{group.name}</h2>
+          <div class="apps-grid">
+            {group.apps.map(app => (
+              <AppCard {...app} />
+            ))}
+          </div>
+        </div>
+      ))}
+    </div>
+  </section>
+
+  <Footer slot="footer" />
+</Base>
+
+<style>
+  .apps-page h1 {
+    margin-bottom: var(--space-sm);
+  }
+
+  .apps-sub {
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    max-width: 55ch;
+    line-height: var(--leading-relaxed);
+  }
+
+  .apps-group {
+    margin-top: var(--space-2xl);
+  }
+
+  .apps-group__title {
+    font-size: var(--text-lg);
+    margin-bottom: var(--space-base);
+  }
+
+  .apps-grid {
+    display: grid;
+    grid-template-columns: repeat(auto-fit, minmax(300px, 1fr));
+    gap: var(--space-md);
+  }
+</style>

@@ -1,0 +1,184 @@
+---
+const navLinks = [
+  { href: '/', label: 'Home' },
+  { href: '/about', label: 'About' },
+  { href: '/events', label: 'Events' },
+  { href: '/communities', label: 'Communities' },
+  { href: '/apps', label: 'Apps' },
+];
+
+const currentPath = Astro.url.pathname;
+---
+
+<header class="site-header">
+  <nav class="site-nav container" aria-label="Main navigation">
+    <a href="/" class="site-logo" aria-label="atmosphere.community home">
+      <span class="logo-cloud" aria-hidden="true"></span>
+      <span class="logo-text"><span class="logo-at">@</span>atmosphere</span>
+    </a>
+
+    <input type="checkbox" id="nav-toggle" class="nav-toggle visually-hidden" aria-hidden="true" />
+    <label for="nav-toggle" class="nav-toggle-label" aria-label="Toggle navigation menu">
+      <span class="hamburger" aria-hidden="true"></span>
+    </label>
+
+    <ul class="nav-links" role="list">
+      {navLinks.map(link => (
+        <li>
+          <a
+            href={link.href}
+            class:list={['nav-link', { 'nav-link--active': currentPath === link.href || (link.href !== '/' && currentPath.startsWith(link.href)) }]}
+            aria-current={currentPath === link.href ? 'page' : undefined}
+          >
+            {link.label}
+          </a>
+        </li>
+      ))}
+    </ul>
+  </nav>
+</header>
+
+<style>
+  .site-header {
+    position: sticky;
+    top: 0;
+    z-index: 10;
+    background: var(--color-surface-card);
+    border-bottom: 1px solid var(--color-border);
+  }
+
+  .site-nav {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    height: 56px;
+  }
+
+  .site-logo {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    text-decoration: none;
+    color: var(--color-primary);
+  }
+
+  .logo-cloud {
+    display: block;
+    width: 22px;
+    height: 12px;
+    position: relative;
+    background: var(--blue-200);
+    border-radius: 12px;
+  }
+  .logo-cloud::before {
+    content: '';
+    position: absolute;
+    width: 10px;
+    height: 10px;
+    border-radius: 50%;
+    background: var(--blue-200);
+    top: -5px;
+    left: 4px;
+  }
+  .logo-cloud::after {
+    content: '';
+    position: absolute;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--blue-200);
+    top: -3px;
+    left: 12px;
+  }
+
+  .logo-text {
+    font-family: var(--font-body);
+    font-weight: 700;
+    font-size: var(--text-base);
+  }
+  .logo-at {
+    color: var(--blue-400);
+  }
+
+  .nav-links {
+    display: flex;
+    gap: var(--space-lg);
+    list-style: none;
+  }
+
+  .nav-link {
+    font-size: var(--text-sm);
+    font-weight: 500;
+    color: var(--color-text-muted);
+    text-decoration: none;
+    padding-block: var(--space-xs);
+  }
+  .nav-link:hover {
+    color: var(--color-text);
+  }
+  .nav-link--active {
+    color: var(--color-primary);
+  }
+
+  /* Mobile hamburger */
+  .nav-toggle-label {
+    display: none;
+    cursor: pointer;
+    padding: var(--space-sm);
+    margin: calc(-1 * var(--space-sm));
+  }
+
+  .hamburger {
+    display: block;
+    width: 20px;
+    height: 2px;
+    background: var(--color-text);
+    position: relative;
+  }
+  .hamburger::before,
+  .hamburger::after {
+    content: '';
+    position: absolute;
+    width: 20px;
+    height: 2px;
+    background: var(--color-text);
+    left: 0;
+  }
+  .hamburger::before { top: -6px; }
+  .hamburger::after  { top: 6px; }
+
+  @media (max-width: 640px) {
+    .nav-toggle-label {
+      display: block;
+    }
+
+    .nav-links {
+      position: absolute;
+      top: 56px;
+      left: 0;
+      right: 0;
+      flex-direction: column;
+      background: var(--color-surface-card);
+      border-bottom: 1px solid var(--color-border);
+      padding: var(--space-base) var(--space-lg);
+      gap: var(--space-base);
+      display: none;
+    }
+
+    .nav-toggle:checked ~ .nav-links {
+      display: flex;
+    }
+
+    .nav-toggle:checked ~ .nav-toggle-label .hamburger {
+      background: transparent;
+    }
+    .nav-toggle:checked ~ .nav-toggle-label .hamburger::before {
+      top: 0;
+      transform: rotate(45deg);
+    }
+    .nav-toggle:checked ~ .nav-toggle-label .hamburger::after {
+      top: 0;
+      transform: rotate(-45deg);
+    }
+  }
+</style>

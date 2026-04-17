@@ -1,0 +1,76 @@
+---
+import Base from '../layouts/Base.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import CommunityCard from '../components/CommunityCard.astro';
+import yaml from 'js-yaml';
+import communitiesRaw from '../data/communities.yml?raw';
+
+interface Community {
+  name: string;
+  handle: string;
+  location: string;
+  description?: string;
+  bluesky?: string;
+  website?: string;
+}
+
+const communities = yaml.load(communitiesRaw) as Community[];
+---
+
+<Base title="Communities" description="Find AT Protocol communities around the world.">
+  <Header slot="header" />
+
+  <section class="communities-page section">
+    <div class="container">
+      <h1>Communities</h1>
+      <p class="communities-sub">
+        AT Protocol communities around the world. Each group is run independently by local organizers.
+        Find one near you or <a href="https://bsky.app/profile/ngerakines.me" rel="noopener noreferrer" target="_blank">start your own</a>.
+      </p>
+
+      <div class="communities-grid">
+        {communities.map(c => (
+          <div class="community-entry">
+            <CommunityCard {...c} />
+            {c.description && <p class="community-desc">{c.description}</p>}
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <Footer slot="footer" />
+</Base>
+
+<style>
+  .communities-page h1 {
+    margin-bottom: var(--space-sm);
+  }
+
+  .communities-sub {
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    max-width: 55ch;
+    line-height: var(--leading-relaxed);
+  }
+
+  .communities-grid {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-lg);
+    margin-top: var(--space-xl);
+  }
+
+  .community-entry {
+    display: flex;
+    align-items: center;
+    gap: var(--space-base);
+    flex-wrap: wrap;
+  }
+
+  .community-desc {
+    font-size: var(--text-sm);
+    color: var(--color-text-secondary);
+  }
+</style>

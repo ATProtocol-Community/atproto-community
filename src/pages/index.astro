@@ -1,17 +1,305 @@
 ---
+import Base from '../layouts/Base.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import Hero from '../components/Hero.astro';
+import PostCard from '../components/PostCard.astro';
+import EventCard from '../components/EventCard.astro';
+import CommunityCard from '../components/CommunityCard.astro';
+import AppCard from '../components/AppCard.astro';
+import yaml from 'js-yaml';
+import communitiesRaw from '../data/communities.yml?raw';
+import appsRaw from '../data/apps.yml?raw';
+import { getCollection } from 'astro:content';
+import { getProfile, excerpt } from '../lib/atproto';
+import { fetchEvents } from '../lib/events';
 
+interface Community {
+  name: string;
+  handle: string;
+  location: string;
+  description?: string;
+  bluesky?: string;
+  website?: string;
+}
+
+const communities = yaml.load(communitiesRaw) as Community[];
+
+interface App {
+  name: string;
+  description: string;
+  url: string;
+  bluesky?: string;
+  category?: string;
+  logo?: string;
+}
+
+const apps = yaml.load(appsRaw) as App[];
+
+// Fetch blog posts from ATProto via Content Collection
+let posts: Array<{
+  title: string;
+  excerpt: string;
+  author: string;
+  date: string;
+  href: string;
+  tag?: string;
+}> = [];
+
+try {
+  const blogPosts = await getCollection('blog');
+
+  // Prefer Offprint articles (blog.atmosphere.community publication)
+  const OFFPRINT_PUB = 'at://did:plc:lehcqqkwzcwvjvw66uthu5oq/site.standard.publication/3mjnpilwnrp2v';
+  const offprintPosts = blogPosts.filter(p => p.data.site === OFFPRINT_PUB && p.data.title);
+  // Fall back to all posts if Offprint has fewer than 3 articles
+  const sourcePosts = offprintPosts.length >= 3 ? offprintPosts : blogPosts.filter(p => p.data.title);
+
+  const sorted = sourcePosts
+    .sort((a, b) => {
+      const dateA = a.data.publishedAt ? new Date(a.data.publishedAt).getTime() : 0;
+      const dateB = b.data.publishedAt ? new Date(b.data.publishedAt).getTime() : 0;
+      return dateB - dateA;
+    })
+    .slice(0, 6);
+
+  // Resolve the blog author profile
+  const profile = await getProfile('atmosphere.community');
+  const authorName = profile.displayName || `@${profile.handle}`;
+
+  posts = sorted.map(post => {
+    const postUrl = post.data.url
+      || (post.data.path ? `https://blog.atmosphere.community${post.data.path}` : 'https://blog.atmosphere.community');
+    return {
+      title: post.data.title ?? 'Untitled',
+      excerpt: excerpt(post.data.textContent ?? post.data.description, 150),
+      author: authorName,
+      date: post.data.publishedAt
+        ? new Date(post.data.publishedAt).toISOString().split('T')[0]
+        : '',
+      href: postUrl,
+      tag: post.data.tags?.[0],
+    };
+  });
+} catch (e) {
+  console.warn('Failed to load blog posts from ATProto, using fallback:', e);
+  // Fallback placeholder posts
+  posts = [
+    {
+      title: 'Welcome to atmosphere.community',
+      excerpt: 'The community hub for people building on AT Protocol. Subscribe to stay up to date with the latest posts, events, and community happenings.',
+      author: '@atmosphere.community',
+      date: '2026-04-16',
+      href: 'https://blog.atmosphere.community',
+    },
+  ];
+}
+
+// Build event account list: atmosphere.community + all community handles
+const eventAccounts = [
+  'atmosphere.community',
+  ...communities.map(c => c.handle),
+];
+
+// Fetch events from ATProto (community.lexicon.calendar.event)
+let events: Array<{
+  name: string;
+  date: string;
+  endDate?: string;
+  location?: string;
+  mode: 'online' | 'in_person' | 'hybrid';
+  description?: string;
+  href: string;
+}> = [];
+
+try {
+  const liveEvents = await fetchEvents(eventAccounts);
+  events = liveEvents.slice(0, 4);
+} catch (e) {
+  console.warn('Failed to fetch events from ATProto, using fallback:', e);
+  events = [
+    {
+      name: 'Check Smoke Signal for upcoming events',
+      date: new Date().toISOString(),
+      mode: 'online' as const,
+      description: 'Visit smokesignal.events to discover ATProto community events.',
+      href: 'https://smokesignal.events',
+    },
+  ];
+}
+
+// Community highlights (static)
+const highlights = [
+  {
+    title: 'Discourse Forum',
+    description: 'Discuss ideas, proposals, and community projects with fellow builders.',
+    href: 'https://discourse.atprotocol.community',
+    linkText: 'Join the conversation →',
+  },
+  {
+    title: 'Community Fund',
+    description: 'Supporting projects, events, and infrastructure across the Atmosphere.',
+    href: 'https://opencollective.com/atprotocoldev/',
+    linkText: 'Learn more →',
+  },
+  {
+    title: 'ATmosphereConf',
+    description: 'The community conference for people building on AT Protocol.',
+    href: 'https://atmosphereconf.org',
+    linkText: 'See the schedule →',
+  },
+  {
+    title: 'GitHub',
+    description: 'Open-source projects and community infrastructure — contributions welcome.',
+    href: 'https://github.com/ATProtocol-Community',
+    linkText: 'Browse repos →',
+  },
+];
 ---
 
-<html lang="en">
-	<head>
-		<meta charset="utf-8" />
-		<link rel="icon" type="image/svg+xml" href="/favicon.svg" />
-		<link rel="icon" href="/favicon.ico" />
-		<meta name="viewport" content="width=device-width" />
-		<meta name="generator" content={Astro.generator} />
-		<title>Astro</title>
-	</head>
-	<body>
-		<h1>Astro</h1>
-	</body>
-</html>
+<Base title="atmosphere.community">
+  <Header slot="header" />
+
+  <Hero subscriberCount={1000} groupCount={communities.length} />
+
+  <!-- Latest Posts -->
+  <section class="section" aria-labelledby="posts-heading">
+    <div class="container">
+      <div class="section-header">
+        <h2 id="posts-heading" class="section__title">Latest from the blog</h2>
+        <a href="https://blog.atmosphere.community" class="section__more">Read on the blog →</a>
+      </div>
+      <div class="posts-list">
+        {posts.length > 0 ? (
+          posts.map(post => (
+            <PostCard {...post} />
+          ))
+        ) : (
+          <p class="empty-state">No posts yet. Check back soon or <a href="https://blog.atmosphere.community">visit the blog</a>.</p>
+        )}
+      </div>
+    </div>
+  </section>
+
+  <!-- Upcoming Events -->
+  <section class="section section--alt" aria-labelledby="events-heading">
+    <div class="container">
+      <div class="section-header">
+        <h2 id="events-heading" class="section__title">Upcoming events</h2>
+        <a href="/events" class="section__more">See all events →</a>
+      </div>
+      <div class="grid-2">
+        {events.map(event => (
+          <EventCard {...event} />
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Communities -->
+  <section class="section" aria-labelledby="communities-heading">
+    <div class="container">
+      <div class="section-header">
+        <h2 id="communities-heading" class="section__title">Local communities</h2>
+        <a href="/communities" class="section__more">See all →</a>
+      </div>
+      <div class="community-row">
+        {communities.slice(0, 8).map(c => (
+          <CommunityCard {...c} />
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Apps -->
+  <section class="section" aria-labelledby="apps-heading">
+    <div class="container">
+      <div class="section-header">
+        <h2 id="apps-heading" class="section__title">Apps built on AT Protocol</h2>
+        <a href="/apps" class="section__more">See all apps →</a>
+      </div>
+      <div class="grid-2">
+        {apps.slice(0, 6).map(app => (
+          <AppCard {...app} />
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <!-- Get Involved -->
+  <section class="section section--alt" aria-labelledby="involved-heading">
+    <div class="container">
+      <h2 id="involved-heading" class="section__title">Get involved</h2>
+      <div class="grid-2 highlights-grid">
+        {highlights.map(h => (
+          <div class="highlight-card card">
+            <h3>{h.title}</h3>
+            <p>{h.description}</p>
+            <a href={h.href} rel="noopener noreferrer" target="_blank">{h.linkText}</a>
+          </div>
+        ))}
+      </div>
+    </div>
+  </section>
+
+  <Footer slot="footer" />
+</Base>
+
+<style>
+  .section--alt {
+    background: var(--neutral-100);
+  }
+
+  .section-header {
+    display: flex;
+    align-items: baseline;
+    justify-content: space-between;
+    gap: var(--space-base);
+    margin-bottom: var(--space-xl);
+  }
+
+  .posts-list {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-md);
+  }
+
+  .community-row {
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-sm);
+  }
+
+  .highlight-card {
+    display: flex;
+    flex-direction: column;
+    gap: var(--space-sm);
+  }
+  .highlight-card h3 {
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: 600;
+  }
+  .highlight-card p {
+    font-size: var(--text-xs);
+    color: var(--color-text-muted);
+    line-height: var(--leading-normal);
+  }
+  .highlight-card a {
+    font-size: var(--text-xs);
+    font-weight: 500;
+  }
+
+  .highlights-grid {
+    margin-top: var(--space-xl);
+  }
+
+  .empty-state {
+    padding: var(--space-xl);
+    text-align: center;
+    color: var(--color-text-secondary);
+    background: var(--neutral-100);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+  }
+</style>

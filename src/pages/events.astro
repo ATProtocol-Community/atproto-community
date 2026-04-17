@@ -1,0 +1,94 @@
+---
+import Base from '../layouts/Base.astro';
+import Header from '../components/Header.astro';
+import Footer from '../components/Footer.astro';
+import EventCard from '../components/EventCard.astro';
+import { fetchEvents } from '../lib/events';
+import yaml from 'js-yaml';
+import communitiesRaw from '../data/communities.yml?raw';
+
+interface Community {
+  name: string;
+  handle: string;
+  location: string;
+}
+
+const communities = yaml.load(communitiesRaw) as Community[];
+
+// Build event account list: atmosphere.community + all community handles
+const eventAccounts = [
+  'atmosphere.community',
+  ...communities.map(c => c.handle),
+];
+
+// Fetch events from ATProto (community.lexicon.calendar.event)
+let upcomingEvents: Array<{
+  name: string;
+  date: string;
+  endDate?: string;
+  location?: string;
+  mode: 'online' | 'in_person' | 'hybrid';
+  description?: string;
+  href: string;
+}> = [];
+
+try {
+  upcomingEvents = await fetchEvents(eventAccounts);
+} catch (e) {
+  console.warn('Failed to fetch events:', e);
+}
+---
+
+<Base title="Events" description="Upcoming AT Protocol community events, meetups, and conferences.">
+  <Header slot="header" />
+
+  <section class="events-page section">
+    <div class="container">
+      <h1>Upcoming events</h1>
+      <p class="events-sub">
+        Community meetups, conferences, and hangouts across the Atmosphere.
+        Events are sourced from <a href="https://smokesignal.events" rel="noopener noreferrer" target="_blank">Smoke Signal</a>.
+      </p>
+
+      {upcomingEvents.length > 0 ? (
+        <div class="grid-2 events-grid">
+          {upcomingEvents.map(event => (
+            <EventCard {...event} />
+          ))}
+        </div>
+      ) : (
+        <div class="events-empty">
+          <p>No upcoming events right now. Check back soon or <a href="https://smokesignal.events">create one on Smoke Signal</a>.</p>
+        </div>
+      )}
+    </div>
+  </section>
+
+  <Footer slot="footer" />
+</Base>
+
+<style>
+  .events-page h1 {
+    margin-bottom: var(--space-sm);
+  }
+
+  .events-sub {
+    color: var(--color-text-secondary);
+    font-size: var(--text-sm);
+    max-width: 55ch;
+    line-height: var(--leading-relaxed);
+  }
+
+  .events-grid {
+    margin-top: var(--space-xl);
+  }
+
+  .events-empty {
+    margin-top: var(--space-xl);
+    padding: var(--space-2xl);
+    text-align: center;
+    color: var(--color-text-secondary);
+    background: var(--neutral-100);
+    border-radius: var(--radius-md);
+  }
+</style>

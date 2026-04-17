@@ -1,0 +1,71 @@
+- name: ATProto Amsterdam
+  handle: atproto.amsterdam
+  location: Amsterdam, NL
+  description: Amsterdam ATProtocol user group
+  bluesky: https://bsky.app/profile/atproto.amsterdam
+
+- name: ATProto Berlin
+  handle: atproto.berlin
+  location: Berlin, DE
+  description: Berlin ATProtocol user group
+  bluesky: https://bsky.app/profile/atproto.berlin
+
+- name: ATProto Boston
+  handle: atproto.boston
+  location: Boston, MA
+  description: Boston ATProtocol user group
+  bluesky: https://bsky.app/profile/atproto.boston
+
+- name: ATProto Brazil
+  handle: atproto.com.br
+  location: Brazil
+  description: Brazil ATProtocol user group
+  bluesky: https://bsky.app/profile/atproto.com.br
+
+- name: ATProtocol Devs
+  handle: atprotocol.dev
+  location: Online
+  description: Online ATProtocol developer community
+  bluesky: https://bsky.app/profile/atprotocol.dev
+
+- name: ATProto France
+  handle: atproto.fr
+  location: France
+  description: France ATProtocol user group
+  bluesky: https://bsky.app/profile/atproto.fr
+
+- name: ATProto LA
+  handle: atproto.la
+  location: Los Angeles, CA
+  description: Los Angeles ATProtocol user group
+  bluesky: https://bsky.app/profile/atproto.la
+
+- name: ATProto London
+  handle: atproto.london
+  location: London, UK
+  description: London ATProtocol user group
+  bluesky: https://bsky.app/profile/atproto.london
+
+- name: ATProto Norway
+  handle: atproto.no
+  location: Norway
+  description: Norway ATProtocol user group
+  bluesky: https://bsky.app/profile/atproto.no
+
+- name: ATProto PDX
+  handle: pdx.atproto.camp
+  location: Portland, OR
+  description: Portland ATProtocol user group
+  bluesky: https://bsky.app/profile/pdx.atproto.camp
+
+- name: ATProto Seattle
+  handle: seattle.atprotocol.community
+  location: Seattle, WA
+  description: Seattle ATProtocol user group
+  bluesky: https://bsky.app/profile/seattle.atprotocol.community
+
+- name: ATProto Vancouver
+  handle: vancouver.atprotocol.community
+  location: Vancouver, BC
+  description: Vancouver ATProtocol user group
+  bluesky: https://bsky.app/profile/vancouver.atprotocol.community

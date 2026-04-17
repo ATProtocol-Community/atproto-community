@@ -1,0 +1,102 @@
+---
+interface Props {
+  name: string;
+  handle: string;
+  location: string;
+  description?: string;
+  bluesky?: string;
+  website?: string;
+}
+
+const { name, handle, location, description, bluesky, website } = Astro.props;
+
+// Generate initials from the handle for the colored circle
+const abbr = handle
+  .replace(/\.(bsky\.social|atproto\.camp|atprotocol\.community)$/, '')
+  .replace(/^atproto\.?/, '')
+  .slice(0, 3)
+  .toUpperCase();
+
+// Deterministic color from handle
+function handleColor(h: string): string {
+  let hash = 0;
+  for (const ch of h) hash = ((hash << 5) - hash + ch.charCodeAt(0)) | 0;
+  const hue = ((hash % 360) + 360) % 360;
+  return `oklch(50% 0.13 ${hue})`;
+}
+---
+
+<div class="community-pill">
+  <span class="community-pill__dot" style={`background: ${handleColor(handle)}`} aria-hidden="true">
+    {abbr}
+  </span>
+  <div class="community-pill__text">
+    <span class="community-pill__name">{name}</span>
+    <span class="community-pill__location">{location}</span>
+  </div>
+  {bluesky && (
+    <a href={bluesky} class="community-pill__link" rel="noopener noreferrer" target="_blank" aria-label={`${name} on Bluesky`}>
+      <svg width="16" height="14" viewBox="0 0 568 501" fill="currentColor" aria-hidden="true">
+        <path d="M123.121 33.664C188.241 82.553 258.281 181.68 284 234.873c25.719-53.192 95.759-152.32 160.879-201.21C491.866-1.611 568-28.906 568 49.845c0 17.712-10.155 148.79-16.111 170.07-20.703 73.984-96.144 92.854-163.25 81.433 117.3 19.964 147.14 86.907 82.697 153.834-122.178 126.907-175.736-31.784-189.577-72.58-1.786-5.271-2.62-7.721-2.756-5.636-.14-2.085-.97.365-2.757 5.636-13.84 40.796-67.399 199.487-189.577 72.58C22.56 388.152 52.4 321.209 169.7 301.345c-67.106 11.42-142.547-7.45-163.25-81.433C.488 198.634-9.667 67.556-9.667 49.845c0-78.75 76.134-51.456 132.788-16.181z" />
+      </svg>
+    </a>
+  )}
+</div>
+
+<style>
+  .community-pill {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-sm);
+    background: var(--color-surface-card);
+    border: 1px solid var(--color-border);
+    border-radius: var(--radius-pill);
+    padding: var(--space-xs) var(--space-md) var(--space-xs) var(--space-xs);
+  }
+
+  .community-pill__dot {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: oklch(98% 0 0);
+    font-size: 8px;
+    font-weight: 700;
+    font-family: var(--font-body);
+    letter-spacing: 0.02em;
+  }
+
+  .community-pill__text {
+    display: flex;
+    flex-direction: column;
+    min-width: 0;
+  }
+
+  .community-pill__name {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--neutral-900);
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  .community-pill__location {
+    font-size: 9px;
+    color: var(--color-text-muted);
+    line-height: 1.2;
+  }
+
+  .community-pill__link {
+    flex-shrink: 0;
+    color: var(--color-primary);
+    display: flex;
+    padding: var(--space-xs);
+    margin: calc(-1 * var(--space-xs));
+  }
+  .community-pill__link:hover {
+    color: var(--color-primary-hover);
+  }
+</style>
