@@ -4,6 +4,7 @@ import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import EventCard from '../components/EventCard.astro';
 import { fetchEvents } from '../lib/events';
+import { preflight } from '../lib/preflight';
 import yaml from 'js-yaml';
 import communitiesRaw from '../data/communities.yml?raw';
 
@@ -23,22 +24,12 @@ const eventAccounts = [
   ...communities.flatMap(c => c.extraEventAccounts ?? []),
 ];
 
-// Fetch events from ATProto (community.lexicon.calendar.event)
-let upcomingEvents: Array<{
-  name: string;
-  date: string;
-  endDate?: string;
-  location?: string;
-  mode: 'online' | 'in_person' | 'hybrid';
-  description?: string;
-  href: string;
-}> = [];
+// Verify core services are reachable
+await preflight();
 
-try {
-  upcomingEvents = await fetchEvents(eventAccounts);
-} catch (e) {
-  console.warn('Failed to fetch events:', e);
-}
+// Fetch events from ATProto (community.lexicon.calendar.event)
+// Individual community failures are tolerated; only total service outage fails the build.
+const upcomingEvents = await fetchEvents(eventAccounts);
 ---
 
 <Base title="Events" description="Upcoming AT Protocol community events, meetups, and conferences.">

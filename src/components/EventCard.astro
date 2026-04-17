@@ -7,9 +7,10 @@ interface Props {
   mode?: 'online' | 'in_person' | 'hybrid';
   description?: string;
   href: string;
+  source?: string;
 }
 
-const { name, date, endDate, location, mode = 'in_person', description, href } = Astro.props;
+const { name, date, endDate, location, mode = 'in_person', description, href, source } = Astro.props;
 
 const eventDate = new Date(date);
 const formattedDate = eventDate.toLocaleDateString('en-US', {
@@ -24,6 +25,9 @@ const formattedTime = eventDate.toLocaleTimeString('en-US', {
 
 const modeLabel = mode === 'online' ? 'Online' : mode === 'hybrid' ? 'Hybrid' : location ?? 'In Person';
 const badgeClass = mode === 'online' ? 'badge--online' : mode === 'hybrid' ? 'badge--online' : 'badge--location';
+
+// Format source handle for display
+const sourceLabel = source ? `@${source.replace(/\.bsky\.social$/, '')}` : undefined;
 ---
 
 <article class="event-card card">
@@ -35,6 +39,7 @@ const badgeClass = mode === 'online' ? 'badge--online' : mode === 'hybrid' ? 'ba
     {description && <p class="event-card__desc">{description}</p>}
     <div class="event-card__footer">
       <span class={`badge ${badgeClass}`}>{modeLabel}</span>
+      {sourceLabel && <span class="badge badge--tag">{sourceLabel}</span>}
     </div>
   </a>
 </article>
@@ -83,5 +88,8 @@ const badgeClass = mode === 'online' ? 'badge--online' : mode === 'hybrid' ? 'ba
 
   .event-card__footer {
     margin-top: var(--space-md);
+    display: flex;
+    flex-wrap: wrap;
+    gap: var(--space-xs);
   }
 </style>

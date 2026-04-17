@@ -11,6 +11,8 @@ import communitiesRaw from '../data/communities.yml?raw';
 import { getProfile, excerpt } from '../lib/atproto';
 import { fetchBlogPosts } from '../lib/blog';
 import { fetchEvents } from '../lib/events';
+import { preflight } from '../lib/preflight';
+import { preflight } from '../lib/preflight';
 
 interface Community {
   name: string;
@@ -36,56 +38,33 @@ for (let i = 0; i < communities.length; i++) {
   }
 }
 
-// Fetch blog posts from ATProto via Content Collection
-let posts: Array<{
-  title: string;
-  excerpt: string;
-  author: string;
-  date: string;
-  href: string;
-  tag?: string;
-}> = [];
+// Verify core ATProto services are reachable before fetching data.
+// If services are down, the build fails to avoid deploying empty content.
+await preflight();
 
-try {
-  // Fetch only Offprint articles directly via XRPC
-  const OFFPRINT_PUB = 'at://did:plc:lehcqqkwzcwvjvw66uthu5oq/site.standard.publication/3mjnpilwnrp2v';
-  const blogPosts = await fetchBlogPosts({
-    handle: 'atmosphere.community',
-    pds: 'https://hydnum.us-west.host.bsky.network',
-    publication: OFFPRINT_PUB,
-  });
+// Fetch blog posts from ATProto
+const OFFPRINT_PUB = 'at://did:plc:lehcqqkwzcwvjvw66uthu5oq/site.standard.publication/3mjnpilwnrp2v';
+const blogPosts = await fetchBlogPosts({
+  handle: 'atmosphere.community',
+  pds: 'https://hydnum.us-west.host.bsky.network',
+  publication: OFFPRINT_PUB,
+});
 
-  const sorted = blogPosts
-    .sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime())
-    .slice(0, 6);
+const sortedPosts = blogPosts
+  .sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime())
+  .slice(0, 6);
 
-  // Resolve the blog author profile
-  const profile = await getProfile('atmosphere.community');
-  const authorName = profile.displayName || `@${profile.handle}`;
+const profile = await getProfile('atmosphere.community');
+const authorName = profile.displayName || `@${profile.handle}`;
 
-  posts = sorted.map(post => {
-    return {
-      title: post.title,
-      excerpt: excerpt(post.textContent ?? post.description, 150),
-      author: authorName,
-      date: post.publishedAt.toISOString().split('T')[0],
-      href: post.url ?? 'https://blog.atmosphere.community',
-      tag: post.tags?.[0],
-    };
-  });
-} catch (e) {
-  console.warn('Failed to load blog posts from ATProto, using fallback:', e);
-  // Fallback placeholder posts
-  posts = [
-    {
-      title: 'Welcome to atmosphere.community',
-      excerpt: 'The community hub for people building on AT Protocol. Subscribe to stay up to date with the latest posts, events, and community happenings.',
-      author: '@atmosphere.community',
-      date: '2026-04-16',
-      href: 'https://blog.atmosphere.community',
-    },
-  ];
-}
+const posts = sortedPosts.map(post => ({
+  title: post.title,
+  excerpt: excerpt(post.textContent ?? post.description, 150),
+  author: authorName,
+  date: post.publishedAt.toISOString().split('T')[0],
+  href: post.url ?? 'https://blog.atmosphere.community',
+  tag: post.tags?.[0],
+}));
 
 // Build event account list: atmosphere.community + all community handles + extra accounts
 const eventAccounts = [
@@ -95,31 +74,9 @@ const eventAccounts = [
 ];
 
 // Fetch events from ATProto (community.lexicon.calendar.event)
-let events: Array<{
-  name: string;
-  date: string;
-  endDate?: string;
-  location?: string;
-  mode: 'online' | 'in_person' | 'hybrid';
-  description?: string;
-  href: string;
-}> = [];
-
-try {
-  const liveEvents = await fetchEvents(eventAccounts);
-  events = liveEvents.slice(0, 4);
-} catch (e) {
-  console.warn('Failed to fetch events from ATProto, using fallback:', e);
-  events = [
-    {
-      name: 'Check Smoke Signal for upcoming events',
-      date: new Date().toISOString(),
-      mode: 'online' as const,
-      description: 'Visit smokesignal.events to discover ATProto community events.',
-      href: 'https://smokesignal.events',
-    },
-  ];
-}
+// Individual community failures are tolerated; only total failure crashes the build.
+const liveEvents = await fetchEvents(eventAccounts);
+const events = liveEvents.slice(0, 4);
 
 // Community highlights (static)
 const highlights = [
@@ -142,10 +99,10 @@ const highlights = [
     linkText: 'See the schedule →',
   },
   {
-    title: 'GitHub',
-    description: 'Open-source projects and community infrastructure — contributions welcome.',
-    href: 'https://github.com/ATProtocol-Community',
-    linkText: 'Browse repos →',
+    title: 'Discord',
+    description: "Chat with community members, ask questions, and share what you're building.",
+    href: 'https://discord.atprotocol.dev/',
+    linkText: 'Join the Discord →',
   },
 ];
 ---
@@ -197,7 +154,7 @@ const highlights = [
         <a href={`${import.meta.env.BASE_URL}/communities`} class="section__more">See all →</a>
       </div>
       <div class="community-row">
-        {communities.slice(0, 8).map(c => (
+        {communities.slice(0, 10).map(c => (
           <CommunityCard {...c} avatar={communityAvatars.get(c.handle)} />
         ))}
       </div>
