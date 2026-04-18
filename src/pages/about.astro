@@ -1,120 +1,144 @@
 ---
-import Base from '../layouts/Base.astro';
-import Header from '../components/Header.astro';
-import Footer from '../components/Footer.astro';
+import Base from "../layouts/Base.astro";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
 ---
 
-<Base title="About" description="Learn about the Atmosphere community and AT Protocol.">
-  <Header slot="header" />
+<Base
+    title="About"
+    description="Learn about the Atmosphere community and AT Protocol."
+>
+    <Header slot="header" />
 
-  <article class="about-page section">
-    <div class="container container--narrow">
-      <h1>About the Atmosphere</h1>
+    <article class="about-page section">
+        <div class="container container--narrow">
+            <h1>About the Atmosphere</h1>
 
-      <div class="prose">
-        <p>
-          The <strong>Atmosphere</strong> is the growing community of people and projects building on
-          <a href="https://atproto.com" rel="noopener noreferrer" target="_blank">AT Protocol</a> — the
-          open, decentralized protocol behind <a href="https://bsky.app" rel="noopener noreferrer" target="_blank">Bluesky</a>
-          and a growing ecosystem of apps, tools, and services.
-        </p>
+            <div class="prose">
+                <p>
+                    The <strong>Atmosphere</strong> is the growing community of people
+                    and projects building on
+                    <a href="https://atproto.com">AT Protocol</a> — the open, decentralized
+                    protocol behind <a href="https://bsky.app">Bluesky</a>
+                    and a growing ecosystem of apps, tools, and services.
+                </p>
 
-        <p>
-          atmosphere.community is the community front door. We aggregate blog posts from
-          <a href="https://blog.atmosphere.community" rel="noopener noreferrer" target="_blank">our Offprint blog</a>,
-          surface upcoming events from <a href="https://smokesignal.events" rel="noopener noreferrer" target="_blank">Smoke Signal</a>,
-          and connect you with local AT Protocol communities around the world.
-        </p>
+                <p>
+                    atmosphere.community is the community front door. We
+                    aggregate blog posts from the community, surface upcoming
+                    events organized by our regional communities, and connect
+                    you with those local atproto groups around the world.
+                </p>
 
-        <h2>AT Protocol</h2>
-        <p>
-          AT Protocol (Authenticated Transfer Protocol) is an open standard for building social applications.
-          It gives users control over their identity, data, and social connections — so you can move between
-          apps without starting over.
-        </p>
-        <p>
-          Your <strong>Atmosphere account</strong> is your identity across the ecosystem. It's portable — you own
-          your handle, your data, and your social graph. Apps built on AT Protocol interoperate, meaning your
-          posts, follows, and interactions work across the entire Atmosphere.
-        </p>
+                <h2>Community Fund</h2>
+                <p>
+                    The <a
+                        href="https://opencollective.com/atprotocoldev/"
+                        rel="noopener noreferrer"
+                        target="_blank">AT Community Fund</a
+                    >
+                    supports projects, events, and infrastructure that strengthen
+                    the ecosystem. It has funded community conferences, developer
+                    tools, and educational resources.
+                </p>
 
-        <h2>Community Fund</h2>
-        <p>
-          The <a href="https://opencollective.com/atprotocoldev/" rel="noopener noreferrer" target="_blank">AT Protocol Community Fund</a>
-          supports projects, events, and infrastructure that strengthen the ecosystem. It has funded community
-          conferences, developer tools, and educational resources.
-        </p>
+                <h2>Get involved</h2>
+                <p>
+                    There are many ways to participate in the Atmosphere
+                    community:
+                </p>
+                <ul>
+                    <li>
+                        <a href="https://blog.atmosphere.community"
+                            >Subscribe to the blog</a
+                        >
+                        — including email newsletter
+                    </li>
+                    <li>
+                        <a href="https://discourse.atprotocol.community"
+                            >Join the community forum</a
+                        >
+                        — discussions, working groups, and community coordination
+                    </li>
+                    <li>
+                        Contribute to community open-source projects and
+                        community infrastructure <a
+                            href="https://tangled.org/did:plc:lehcqqkwzcwvjvw66uthu5oq"
+                            >Tangled @atmosphere.community</a
+                        > and <a href="https://github.com/ATProtocol-Community"
+                            >GitHub @ATProtocol-Community</a
+                        >
+                    </li>
+                    <li>
+                        <a href="https://bsky.app/profile/atmosphere.community"
+                            >Follow our account <code
+                                >@atmosphere.community</code
+                            ></a
+                        >
+                    </li>
+                    <li>
+                        <a href="/communities">Find a local community</a> near you
+                    </li>
+                </ul>
+                <h2>Contributing to this site</h2>
+                <p>
+                    The atmosphere.community site uses atproto-native features
+                    to highlight community projects of all kinds. You can
+                    contribute with ideas, code, design by joining us in the <a
+                        href="https://discord.com/channels/1097580399187738645/1494842659846488256"
+                        >#atmosphere-community-website</a
+                    > channel in the Discord chat. The Github codebase is at <a
+                        href="https://github.com/ATProtocol-Community/atproto-community"
+                        >@ATProtocol-Community/atproto-community</a
+                    >, including issues.
+                </p>
+            </div>
+        </div>
+    </article>
 
-        <h2>Get involved</h2>
-        <p>There are many ways to participate in the Atmosphere community:</p>
-        <ul>
-          <li>
-            <a href="https://blog.atmosphere.community" rel="noopener noreferrer" target="_blank">Subscribe to the newsletter</a>
-            — email updates or follow via Bluesky
-          </li>
-          <li>
-            <a href="https://discourse.atprotocol.community" rel="noopener noreferrer" target="_blank">Join the Discourse forum</a>
-            — discussions, proposals, and community coordination
-          </li>
-          <li>
-            <a href="https://github.com/ATProtocol-Community" rel="noopener noreferrer" target="_blank">Contribute on GitHub</a>
-            — open-source projects and community infrastructure
-          </li>
-          <li>
-            <a href="https://bsky.app/profile/atmosphere.community" rel="noopener noreferrer" target="_blank">Follow on Bluesky</a>
-            — <code>@atmosphere.community</code>
-          </li>
-          <li>
-            <a href="/communities">Find a local community</a> near you
-          </li>
-        </ul>
-      </div>
-    </div>
-  </article>
-
-  <Footer slot="footer" />
+    <Footer slot="footer" />
 </Base>
 
 <style>
-  .about-page h1 {
-    margin-bottom: var(--space-xl);
-  }
+    .about-page h1 {
+        margin-bottom: var(--space-xl);
+    }
 
-  .prose {
-    font-size: var(--text-base);
-    line-height: var(--leading-relaxed);
-    max-width: 65ch;
-  }
+    .prose {
+        font-size: var(--text-base);
+        line-height: var(--leading-relaxed);
+        max-width: 65ch;
+    }
 
-  .prose h2 {
-    margin-top: var(--space-2xl);
-    margin-bottom: var(--space-md);
-  }
+    .prose h2 {
+        margin-top: var(--space-2xl);
+        margin-bottom: var(--space-md);
+    }
 
-  .prose p + p {
-    margin-top: var(--space-base);
-  }
+    .prose p + p {
+        margin-top: var(--space-base);
+    }
 
-  .prose ul {
-    margin-top: var(--space-base);
-    padding-left: var(--space-lg);
-    display: flex;
-    flex-direction: column;
-    gap: var(--space-sm);
-  }
+    .prose ul {
+        margin-top: var(--space-base);
+        padding-left: var(--space-lg);
+        display: flex;
+        flex-direction: column;
+        gap: var(--space-sm);
+    }
 
-  .prose li {
-    line-height: var(--leading-relaxed);
-  }
+    .prose li {
+        line-height: var(--leading-relaxed);
+    }
 
-  .prose code {
-    font-size: 0.9em;
-    background: var(--neutral-100);
-    padding: 2px 6px;
-    border-radius: var(--radius-sm);
-  }
+    .prose code {
+        font-size: 0.9em;
+        background: var(--neutral-100);
+        padding: 2px 6px;
+        border-radius: var(--radius-sm);
+    }
 
-  .prose strong {
-    font-weight: 600;
-  }
+    .prose strong {
+        font-weight: 600;
+    }
 </style>
