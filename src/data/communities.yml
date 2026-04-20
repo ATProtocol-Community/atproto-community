@@ -117,3 +117,9 @@
   location: Vancouver, BC
   description: Vancouver ATProtocol user group
   bluesky: https://bsky.app/profile/vancouver.atprotocol.community
+
+  - name: ATProto RVA
+  handle: rva-atproto.bsky.social
+  location: Richmond, VA
+  description: RVA ATProtocol user group
+  bluesky: https://bsky.app/profile/rva-atproto.bsky.social
