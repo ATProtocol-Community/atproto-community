@@ -9,9 +9,11 @@
     "dev": "astro dev",
     "build": "astro build",
     "preview": "astro preview",
+    "start": "node ./dist/server/entry.mjs",
     "astro": "astro"
   },
   "dependencies": {
+    "@astrojs/node": "^10.0.5",
     "astro": "^6.1.7"
   }
 }
