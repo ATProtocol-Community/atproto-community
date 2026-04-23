@@ -1,46 +1,20 @@
 ---
+export const prerender = false;
 import Base from '../layouts/Base.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
 import EventCard from '../components/EventCard.astro';
-import { fetchEvents } from '../lib/events';
-import { fetchSharedEvents } from '../lib/shared-content';
-import { preflight } from '../lib/preflight';
-import yaml from 'js-yaml';
-import communitiesRaw from '../data/communities.yml?raw';
+import { getLiveCollection } from 'astro:content';
+import { dedupeEvents } from '../lib/dedupe-events';
 
-interface Community {
-  name: string;
-  handle: string;
-  location: string;
-}
-
-const communities = yaml.load(communitiesRaw) as Community[];
-
-// Build event account list: atmosphere.community + all community handles
-const eventAccounts = [
-  'atmosphere.community',
-  ...communities.map(c => c.handle),
-];
-
-// Verify core services are reachable
-await preflight();
-
-// Fetch events from ATProto (community.lexicon.calendar.event)
-// Individual community failures are tolerated; only total service outage fails the build.
-const [directEvents, sharedEvents] = await Promise.all([
-  fetchEvents(eventAccounts),
-  fetchSharedEvents(eventAccounts),
-]);
-
-// Merge and deduplicate by name + start time
-const seen = new Set<string>();
-const upcomingEvents = [...directEvents, ...sharedEvents].filter(e => {
-  const key = `${e.name.toLowerCase().trim()}|${e.date}`;
-  if (seen.has(key)) return false;
-  seen.add(key);
-  return true;
-}).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
+const now = Date.now();
+const eventsResult = await getLiveCollection('events');
+const upcomingEvents = dedupeEvents(
+  (eventsResult.entries ?? [])
+    .map((entry) => entry.data)
+    .filter((event) => event.startsAt.getTime() >= now)
+    .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime()),
+);
 ---
 
 <Base title="Events" description="Upcoming AT Protocol community events, meetups, and conferences.">
@@ -56,9 +30,7 @@ const upcomingEvents = [...directEvents, ...sharedEvents].filter(e => {
 
       {upcomingEvents.length > 0 ? (
         <div class="grid-2 events-grid">
-          {upcomingEvents.map(event => (
-            <EventCard {...event} />
-          ))}
+          {upcomingEvents.map((event) => <EventCard {...event} />)}
         </div>
       ) : (
         <div class="events-empty">

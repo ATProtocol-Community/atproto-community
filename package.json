@@ -13,7 +13,13 @@
     "astro": "astro"
   },
   "dependencies": {
+    "@astrojs/check": "^0.9.8",
     "@astrojs/node": "^10.0.5",
-    "astro": "^6.1.7"
+    "@atproto/api": "^0.17.3",
+    "@atproto/identity": "^0.4.8",
+    "@fujocoded/astro-atproto-loader": "file:/Users/essentialrandomness/projects/programming/mdx-plugins/astro-atproto-loader",
+    "@opensocial/community": "file:/Users/essentialrandomness/projects/programming/opensocial-community",
+    "astro": "^6.1.7",
+    "typescript": "^5.9.3"
   }
 }

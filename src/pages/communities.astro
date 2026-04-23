@@ -1,34 +1,12 @@
 ---
-import Base from '../layouts/Base.astro';
-import Header from '../components/Header.astro';
-import Footer from '../components/Footer.astro';
-import CommunityCard from '../components/CommunityCard.astro';
-import yaml from 'js-yaml';
-import communitiesRaw from '../data/communities.yml?raw';
-import { getProfile } from '../lib/atproto';
+import Base from "../layouts/Base.astro";
+import Header from "../components/Header.astro";
+import Footer from "../components/Footer.astro";
+import CommunityCard from "../components/CommunityCard.astro";
+import { getLiveCollection } from "astro:content";
 
-interface Community {
-  name: string;
-  handle: string;
-  location: string;
-  description?: string;
-  bluesky?: string;
-  website?: string;
-}
-
-const communities = yaml.load(communitiesRaw) as Community[];
-
-// Fetch Bluesky profile avatars for communities
-const communityProfiles = await Promise.allSettled(
-  communities.map(c => getProfile(c.handle))
-);
-const communityAvatars = new Map<string, string>();
-for (let i = 0; i < communities.length; i++) {
-  const result = communityProfiles[i];
-  if (result.status === 'fulfilled' && result.value.avatar) {
-    communityAvatars.set(communities[i].handle, result.value.avatar);
-  }
-}
+const communitiesResult = await getLiveCollection("communities");
+const communities = communitiesResult.entries?.map((entry) => entry.data) ?? [];
 ---
 
 <Base title="Communities" description="Find AT Protocol communities around the world.">
@@ -45,7 +23,7 @@ for (let i = 0; i < communities.length; i++) {
       <div class="communities-grid">
         {communities.map(c => (
           <div class="community-entry">
-            <CommunityCard {...c} avatar={communityAvatars.get(c.handle)} />
+            <CommunityCard {...c} avatar={c.avatarUrl} />
             {c.description && <p class="community-desc">{c.description}</p>}
           </div>
         ))}

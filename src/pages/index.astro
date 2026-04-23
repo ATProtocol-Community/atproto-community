@@ -1,4 +1,5 @@
 ---
+export const prerender = false;
 import Base from '../layouts/Base.astro';
 import Header from '../components/Header.astro';
 import Footer from '../components/Footer.astro';
@@ -6,124 +7,26 @@ import Hero from '../components/Hero.astro';
 import PostCard from '../components/PostCard.astro';
 import EventCard from '../components/EventCard.astro';
 import CommunityCard from '../components/CommunityCard.astro';
-import yaml from 'js-yaml';
-import communitiesRaw from '../data/communities.yml?raw';
-import { getProfile, excerpt } from '../lib/atproto';
-import { fetchBlogPosts } from '../lib/blog';
-import { fetchEvents } from '../lib/events';
-import { fetchSharedContent, fetchSharedEvents } from '../lib/shared-content';
-import { preflight } from '../lib/preflight';
+import { getLiveCollection } from 'astro:content';
+import { dedupeEvents } from '../lib/dedupe-events';
+const communitiesResult = await getLiveCollection('communities');
+const communities = (communitiesResult.entries ?? []).map((entry) => entry.data);
 
-interface Community {
-  name: string;
-  handle: string;
-  location: string;
-  description?: string;
-  bluesky?: string;
-  website?: string;
-}
-
-const communities = yaml.load(communitiesRaw) as Community[];
-
-// Fetch Bluesky profile avatars for communities
-const communityProfiles = await Promise.allSettled(
-  communities.map(c => getProfile(c.handle))
-);
-const communityAvatars = new Map<string, string>();
-for (let i = 0; i < communities.length; i++) {
-  const result = communityProfiles[i];
-  if (result.status === 'fulfilled' && result.value.avatar) {
-    communityAvatars.set(communities[i].handle, result.value.avatar);
-  }
-}
-
-// Verify core ATProto services are reachable before fetching data.
-// If services are down, the build fails to avoid deploying empty content.
-await preflight();
-
-// Fetch blog posts from ATProto
-const OFFPRINT_PUB = 'at://did:plc:lehcqqkwzcwvjvw66uthu5oq/site.standard.publication/3mjnpilwnrp2v';
-const blogPosts = await fetchBlogPosts({
-  handle: 'atmosphere.community',
-  pds: 'https://hydnum.us-west.host.bsky.network',
-  publication: OFFPRINT_PUB,
-});
-
-const sortedPosts = blogPosts
-  .sort((a, b) => b.publishedAt.getTime() - a.publishedAt.getTime())
+const feedResult = await getLiveCollection('feed');
+const mergedPosts = (feedResult.entries ?? [])
+  .map((entry) => entry.data)
+  .sort((a, b) => (b.publishedAt ?? b.sharedAt).getTime() - (a.publishedAt ?? a.sharedAt).getTime())
   .slice(0, 6);
 
-const profile = await getProfile('atmosphere.community');
-const authorName = profile.displayName || `@${profile.handle}`;
+const eventsResult = await getLiveCollection('events');
+const now = Date.now();
+const events = dedupeEvents(
+  (eventsResult.entries ?? [])
+    .map((entry) => entry.data)
+    .filter((event) => event.startsAt.getTime() >= now)
+    .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime()),
+).slice(0, 4);
 
-const posts = sortedPosts.map(post => ({
-  title: post.title,
-  excerpt: excerpt(post.textContent ?? post.description, 150),
-  author: authorName,
-  avatarUrl: profile.avatar,
-  date: post.publishedAt.toISOString().split('T')[0],
-  href: post.url ?? 'https://blog.atmosphere.community',
-  tag: post.tags?.[0],
-  community: '@atmosphere.community',
-}));
-
-// Fetch shared content from atmosphere.community + all community accounts
-const sharedContentAccounts = [
-  'atmosphere.community',
-  ...communities.map(c => c.handle),
-];
-const sharedPosts = await fetchSharedContent(sharedContentAccounts);
-
-// Merge Offprint posts + shared content, dedupe by title, sort by date, take first 6
-const allPosts = [
-  ...posts.map(p => ({ ...p, isShared: false })),
-  ...sharedPosts.map(p => ({
-    title: p.title,
-    excerpt: p.excerpt,
-    author: p.author.displayName || `@${p.author.handle}`,
-    avatarUrl: p.author.avatar,
-    date: new Date(p.date).toISOString().split('T')[0],
-    href: p.href,
-    tag: p.tags?.[0],
-    community: `@${p.community}`,
-    isShared: true,
-  })),
-];
-const seenTitles = new Set<string>();
-const mergedPosts = allPosts
-  .filter(p => {
-    const key = p.title.toLowerCase().trim();
-    if (seenTitles.has(key)) return false;
-    seenTitles.add(key);
-    return true;
-  })
-  .sort((a, b) => new Date(b.date).getTime() - new Date(a.date).getTime())
-  .slice(0, 6);
-
-// Build event account list: atmosphere.community + all community handles
-const eventAccounts = [
-  'atmosphere.community',
-  ...communities.map(c => c.handle),
-];
-
-// Fetch events from ATProto (community.lexicon.calendar.event)
-// Individual community failures are tolerated; only total failure crashes the build.
-const [directEvents, sharedEventsList] = await Promise.all([
-  fetchEvents(eventAccounts),
-  fetchSharedEvents(eventAccounts),
-]);
-
-// Merge and deduplicate by name + start time
-const seenEvents = new Set<string>();
-const liveEvents = [...directEvents, ...sharedEventsList].filter(e => {
-  const key = `${e.name.toLowerCase().trim()}|${e.date}`;
-  if (seenEvents.has(key)) return false;
-  seenEvents.add(key);
-  return true;
-}).sort((a, b) => new Date(a.date).getTime() - new Date(b.date).getTime());
-const events = liveEvents.slice(0, 4);
-
-// Community highlights (static)
 const highlights = [
   {
     title: 'Discourse Forum',
@@ -166,11 +69,13 @@ const highlights = [
       </div>
       <div class="posts-list">
         {mergedPosts.length > 0 ? (
-          mergedPosts.map(post => (
-            <PostCard {...post} />
-          ))
+          mergedPosts.map((post) => <PostCard {...post} />)
         ) : (
-          <p class="empty-state">No posts yet. Check back soon or <a href="https://blog.atmosphere.community">visit the blog</a>.</p>
+          <p class="empty-state">
+            No posts yet. Check back soon or <a href="https://blog.atmosphere.community">visit
+              the blog</a
+            >.
+          </p>
         )}
       </div>
     </div>
@@ -184,9 +89,7 @@ const highlights = [
         <a href="/events" class="section__more">See all events →</a>
       </div>
       <div class="grid-2">
-        {events.map(event => (
-          <EventCard {...event} />
-        ))}
+        {events.map((event) => <EventCard {...event} />)}
       </div>
     </div>
   </section>
@@ -199,8 +102,8 @@ const highlights = [
         <a href="/communities" class="section__more">See all →</a>
       </div>
       <div class="community-row">
-        {communities.slice(0, 15).map(c => (
-          <CommunityCard {...c} avatar={communityAvatars.get(c.handle)} />
+        {communities.slice(0, 15).map((community) => (
+          <CommunityCard {...community} avatar={community.avatarUrl} />
         ))}
       </div>
     </div>
@@ -211,11 +114,13 @@ const highlights = [
     <div class="container">
       <h2 id="involved-heading" class="section__title">Get involved</h2>
       <div class="grid-2 highlights-grid">
-        {highlights.map(h => (
+        {highlights.map((highlight) => (
           <div class="highlight-card card">
-            <h3>{h.title}</h3>
-            <p>{h.description}</p>
-            <a href={h.href} rel="noopener noreferrer" target="_blank">{h.linkText}</a>
+            <h3>{highlight.title}</h3>
+            <p>{highlight.description}</p>
+            <a href={highlight.href} rel="noopener noreferrer" target="_blank">
+              {highlight.linkText}
+            </a>
           </div>
         ))}
       </div>

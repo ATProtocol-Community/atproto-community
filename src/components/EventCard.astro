@@ -1,41 +1,42 @@
 ---
+import type { CommunityEvent } from '@opensocial/community';
+
 interface Props {
   name: string;
-  date: string;
-  endDate?: string;
+  startsAt: Date;
+  endsAt?: Date;
   location?: string;
-  mode?: 'online' | 'in_person' | 'hybrid';
+  mode?: CommunityEvent['mode'];
   description?: string;
-  href: string;
+  uri: string;
   source?: string;
 }
 
-const { name, date, endDate, location, mode = 'in_person', description, href, source } = Astro.props;
+const { name, startsAt, location, mode = 'inperson', description, uri, source } = Astro.props;
 
-const eventDate = new Date(date);
-const formattedDate = eventDate.toLocaleDateString('en-US', {
+const formattedDate = startsAt.toLocaleDateString('en-US', {
   weekday: 'short',
   month: 'short',
   day: 'numeric',
   timeZone: 'UTC',
 });
-const formattedTime = eventDate.toLocaleTimeString('en-US', {
+const formattedTime = startsAt.toLocaleTimeString('en-US', {
   hour: 'numeric',
   minute: '2-digit',
   timeZone: 'UTC',
 });
 
-const modeLabel = mode === 'online' ? 'Online' : mode === 'hybrid' ? 'Hybrid' : location ?? 'In Person';
-const badgeClass = mode === 'online' ? 'badge--online' : mode === 'hybrid' ? 'badge--online' : 'badge--location';
+const modeLabel = mode === 'virtual' ? 'Online' : mode === 'hybrid' ? 'Hybrid' : (location ?? 'In Person');
+const badgeClass = mode === 'inperson' ? 'badge--location' : 'badge--online';
 
 // Format source handle for display
 const sourceLabel = source ? `@${source.replace(/\.bsky\.social$/, '')}` : undefined;
 ---
 
 <article class="event-card card">
-  <a href={href} class="event-card__link" rel="noopener noreferrer" target="_blank">
+  <a href={uri} class="event-card__link" rel="noopener noreferrer" target="_blank">
     <p class="event-card__date">
-      <time datetime={date} data-event-time>{formattedDate} · {formattedTime} UTC</time>
+      <time datetime={startsAt.toISOString()} data-event-time>{formattedDate} · {formattedTime} UTC</time>
     </p>
     <h3 class="event-card__name">{name}</h3>
     {description && <p class="event-card__desc">{description}</p>}

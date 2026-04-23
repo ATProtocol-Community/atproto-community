@@ -1,16 +1,25 @@
 ---
+import type { AtProfile } from '@opensocial/community';
+
 interface Props {
   title: string;
-  excerpt: string;
-  author: string;
-  date: string;
-  href: string;
-  tag?: string;
-  avatarUrl?: string;
-  community?: string;
+  url: string;
+  excerpt?: string;
+  publishedAt?: Date;
+  sharedAt: Date;
+  author: AtProfile;
+  source: string;
+  documentUri?: string;
+  tags?: string[];
 }
 
-const { title, excerpt, author, date, href, tag, avatarUrl, community } = Astro.props;
+const { title, url, excerpt, publishedAt, sharedAt, author, source, tags } = Astro.props;
+
+const date = publishedAt ?? sharedAt;
+const authorLabel = author.displayName || `@${author.handle}`;
+const avatarUrl = author.avatar;
+const tag = tags?.[0];
+const community = `@${source}`;
 
 // Generate a deterministic color from the author handle
 function authorColor(name: string): string {
@@ -20,7 +29,7 @@ function authorColor(name: string): string {
   return `oklch(55% 0.12 ${hue})`;
 }
 
-const initials = author
+const initials = authorLabel
   .replace(/^@/, '')
   .split(/[.\-_ ]/)
   .slice(0, 2)
@@ -29,23 +38,23 @@ const initials = author
 ---
 
 <article class="post-card">
-  <a href={href} class="post-card__link" rel="noopener noreferrer" target="_blank">
+  <a href={url} class="post-card__link" rel="noopener noreferrer" target="_blank">
     {avatarUrl ? (
       <img src={avatarUrl} alt="" class="post-card__avatar-img" width="36" height="36" loading="lazy" />
     ) : (
-      <div class="post-card__avatar" style={`background: ${authorColor(author)}`} aria-hidden="true">
+      <div class="post-card__avatar" style={`background: ${authorColor(authorLabel)}`} aria-hidden="true">
         {initials}
       </div>
     )}
     <div class="post-card__body">
       <h3 class="post-card__title">{title}</h3>
-      <p class="post-card__excerpt">{excerpt}</p>
+      {excerpt && <p class="post-card__excerpt">{excerpt}</p>}
       <div class="post-card__meta">
         {tag && <span class="badge badge--tag">{tag}</span>}
-        {community && <span class="badge badge--location">{community}</span>}
-        <span class="post-card__author">{author}</span>
+        <span class="badge badge--location">{community}</span>
+        <span class="post-card__author">{authorLabel}</span>
         <span class="post-card__date">
-          <time datetime={date}>{new Date(date).toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</time>
+          <time datetime={date.toISOString()}>{date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</time>
         </span>
       </div>
     </div>
