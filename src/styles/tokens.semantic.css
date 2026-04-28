@@ -1,0 +1,132 @@
+/* ============================================
+   Semantic tokens — theme-agnostic.
+   Composed only from base tokens.
+
+   Rules:
+   - Components consume these by default.
+   - Themes do NOT override this layer.
+   - color-mix() is allowed; raw colors are not.
+   ============================================ */
+
+:root {
+  /* Surfaces */
+  --background: var(--color-base-100);
+  --foreground: var(--color-base-content);
+
+  --card: var(--color-base-100);
+  --card-foreground: var(--color-base-content);
+
+  --popover: var(--color-base-100);
+  --popover-foreground: var(--color-base-content);
+
+  --muted: var(--color-base-200);
+  --muted-foreground: color-mix(
+    in oklch,
+    var(--color-base-content) 65%,
+    var(--color-base-100)
+  );
+
+  /* Foreground variants (layered emphasis) */
+  --foreground-secondary: color-mix(
+    in oklch,
+    var(--color-base-content) 70%,
+    var(--color-base-100)
+  );
+  --foreground-muted: color-mix(
+    in oklch,
+    var(--color-base-content) 55%,
+    var(--color-base-100)
+  );
+  --foreground-subtle: color-mix(
+    in oklch,
+    var(--color-base-content) 30%,
+    var(--color-base-100)
+  );
+
+  /* Borders / interactive */
+  --border: var(--color-base-300);
+  --input: var(--color-base-300);
+  --ring: var(--color-primary);
+
+  /* Brand */
+  --primary: var(--color-primary);
+  --primary-foreground: var(--color-primary-content);
+  --primary-hover: color-mix(
+    in oklch,
+    var(--color-primary) 80%,
+    var(--color-base-content)
+  );
+  --primary-muted: color-mix(
+    in oklch,
+    var(--color-primary) 10%,
+    var(--color-base-100)
+  );
+  --primary-muted-foreground: var(--color-primary);
+
+  --secondary: var(--color-secondary);
+  --secondary-foreground: var(--color-secondary-content);
+
+  --accent: var(--color-accent);
+  --accent-foreground: var(--color-accent-content);
+
+  /* Links */
+  --link: var(--color-primary);
+  --link-hover: color-mix(
+    in oklch,
+    var(--color-primary) 80%,
+    var(--color-base-content)
+  );
+
+  /* Status — solid + muted (muted still signals the state) */
+  --info: var(--color-info);
+  --info-foreground: var(--color-info-content);
+  --info-muted: color-mix(
+    in oklch,
+    var(--color-info) 12%,
+    var(--color-base-100)
+  );
+  --info-muted-foreground: color-mix(
+    in oklch,
+    var(--color-info) 75%,
+    var(--color-base-content)
+  );
+
+  --success: var(--color-success);
+  --success-foreground: var(--color-success-content);
+  --success-muted: color-mix(
+    in oklch,
+    var(--color-success) 14%,
+    var(--color-base-100)
+  );
+  --success-muted-foreground: color-mix(
+    in oklch,
+    var(--color-success) 70%,
+    var(--color-base-content)
+  );
+
+  --warning: var(--color-warning);
+  --warning-foreground: var(--color-warning-content);
+  --warning-muted: color-mix(
+    in oklch,
+    var(--color-warning) 18%,
+    var(--color-base-100)
+  );
+  --warning-muted-foreground: color-mix(
+    in oklch,
+    var(--color-warning) 65%,
+    var(--color-base-content)
+  );
+
+  --error: var(--color-error);
+  --error-foreground: var(--color-error-content);
+  --error-muted: color-mix(
+    in oklch,
+    var(--color-error) 12%,
+    var(--color-base-100)
+  );
+  --error-muted-foreground: color-mix(
+    in oklch,
+    var(--color-error) 70%,
+    var(--color-base-content)
+  );
+}

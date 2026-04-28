@@ -43,8 +43,8 @@ const Tag = href ? "a" : "div";
     display: inline-flex;
     align-items: center;
     gap: var(--space-sm);
-    background: var(--color-surface-card);
-    border: 1px solid var(--color-border);
+    background: var(--card);
+    border: 1px solid var(--card-border);
     border-radius: var(--radius-pill);
     padding: var(--space-xs) var(--space-md) var(--space-xs) var(--space-xs);
     color: inherit;
@@ -53,12 +53,12 @@ const Tag = href ? "a" : "div";
   }
 
   .community-pill--link:hover {
-    border-color: var(--color-primary);
-    background: var(--color-surface-card-hover, var(--color-surface-card));
+    border-color: var(--primary);
+    background: var(--card);
   }
 
   .community-pill--link:focus-visible {
-    outline: 2px solid var(--color-primary);
+    outline: 2px solid var(--primary);
     outline-offset: 2px;
   }
 
@@ -94,23 +94,23 @@ const Tag = href ? "a" : "div";
   .community-pill__name {
     font-size: var(--text-xs);
     font-weight: 600;
-    color: var(--neutral-900);
+    color: var(--card-foreground);
     line-height: 1.2;
     white-space: nowrap;
   }
 
   .community-pill__location {
     font-size: 9px;
-    color: var(--color-text-muted);
+    color: var(--foreground-muted);
     line-height: 1.2;
   }
 
   .community-pill__icon {
     flex-shrink: 0;
-    color: var(--color-primary);
+    color: var(--primary);
     display: flex;
   }
   .community-pill--link:hover .community-pill__icon {
-    color: var(--color-primary-hover);
+    color: var(--primary-hover);
   }
 </style>

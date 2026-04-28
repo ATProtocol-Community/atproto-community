@@ -1,0 +1,48 @@
+/* ============================================
+   Theme: horizon (default)
+   Mood: warm, breezy, people-forward — light mode
+
+   Applied on :root, so it's the default when no
+   [data-theme] attribute is set.
+
+   See tokens.base.css for the rules every theme follows.
+   ============================================ */
+
+:root {
+  /* --- Base tokens (required) --- */
+
+  /* Surface ramp + paired content */
+  --color-base-100: oklch(99% 0.004 250);
+  --color-base-200: oklch(93% 0.008 250);
+  --color-base-300: oklch(88% 0.008 250);
+  --color-base-content: oklch(22% 0.01 250);
+
+  /* Brand pairs */
+  --color-primary: oklch(48% 0.14 250);
+  --color-primary-content: oklch(98% 0.005 250);
+
+  --color-secondary: oklch(62% 0.11 250);
+  --color-secondary-content: oklch(98% 0.005 250);
+
+  --color-accent: oklch(55% 0.14 30);
+  --color-accent-content: oklch(98% 0.005 30);
+
+  --color-neutral: oklch(38% 0.01 250);
+  --color-neutral-content: oklch(97% 0.005 250);
+
+  /* Status pairs */
+  --color-info: oklch(58% 0.12 230);
+  --color-info-content: oklch(98% 0.005 230);
+
+  --color-success: oklch(50% 0.12 145);
+  --color-success-content: oklch(98% 0.005 145);
+
+  --color-warning: oklch(72% 0.15 80);
+  --color-warning-content: oklch(22% 0.05 80);
+
+  --color-error: oklch(55% 0.18 25);
+  --color-error-content: oklch(98% 0.005 25);
+
+  /* --- Component overrides (optional) ---
+     Horizon uses the semantic defaults; nothing to override. */
+}

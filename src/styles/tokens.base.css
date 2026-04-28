@@ -1,0 +1,38 @@
+/* ============================================
+   Base tokens — the layer themes redefine.
+
+   Each theme lives in its own file under ./themes/.
+   The default theme applies to :root; named themes
+   apply via :root[data-theme="..."] on <html>
+   (the :root prefix bumps specificity so theme overrides
+   beat the :root defaults in tokens.semantic.css and
+   tokens.components.css).
+
+   Rules every theme MUST follow:
+   - Redefine every base token listed below.
+   - Use plain colors only (hex / rgb / oklch).
+     No color-mix(), no var() chains in this layer —
+     keeps it serializable for the future
+     community.atmosphere.theme lexicon.
+   - May also override component tokens
+     (see tokens.components.css) for theme-specific patterns
+     like a header surface that diverges from the page bg.
+   - MUST NOT override the semantic layer.
+
+   Required base tokens:
+     Surfaces:    --color-base-100, --color-base-200,
+                  --color-base-300, --color-base-content
+     Brand:       --color-primary,   --color-primary-content
+                  --color-secondary, --color-secondary-content
+                  --color-accent,    --color-accent-content
+                  --color-neutral,   --color-neutral-content
+     Status:      --color-info / --color-info-content
+                  --color-success / --color-success-content
+                  --color-warning / --color-warning-content
+                  --color-error / --color-error-content
+
+   Components MUST NOT consume base tokens directly —
+   use the semantic or component layer.
+   ============================================ */
+
+@import "./themes/horizon.css";

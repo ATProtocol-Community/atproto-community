@@ -47,7 +47,7 @@ const { subscriberCount = 1000, groupCount = 10 } = Astro.props;
   .hero {
     position: relative;
     overflow: hidden;
-    background: var(--color-primary);
+    background: var(--primary);
     padding-block: var(--space-3xl) var(--space-3xl);
   }
 
@@ -141,7 +141,7 @@ const { subscriberCount = 1000, groupCount = 10 } = Astro.props;
   }
 
   .hero h1 {
-    color: var(--color-text-on-primary);
+    color: var(--primary-foreground);
     max-width: 28ch;
   }
 
@@ -162,8 +162,8 @@ const { subscriberCount = 1000, groupCount = 10 } = Astro.props;
   }
 
   .btn--hero {
-    background: var(--color-text-on-primary);
-    color: var(--color-primary);
+    background: var(--primary-foreground);
+    color: var(--primary);
     padding: var(--space-md) var(--space-lg);
     border-radius: var(--radius-sm);
     font-family: var(--font-body);
@@ -174,7 +174,7 @@ const { subscriberCount = 1000, groupCount = 10 } = Astro.props;
   }
   .btn--hero:hover {
     opacity: 0.9;
-    color: var(--color-primary);
+    color: var(--primary);
   }
 
   .hero-secondary {
@@ -184,7 +184,7 @@ const { subscriberCount = 1000, groupCount = 10 } = Astro.props;
     text-decoration: none;
   }
   .hero-secondary:hover {
-    color: var(--color-text-on-primary);
+    color: var(--primary-foreground);
   }
 
   .hero-stats {
@@ -200,7 +200,7 @@ const { subscriberCount = 1000, groupCount = 10 } = Astro.props;
     font-family: var(--font-body);
     font-weight: 700;
     font-size: var(--text-xl);
-    color: var(--color-text-on-primary);
+    color: var(--primary-foreground);
   }
 
   .hero-stat__label {
