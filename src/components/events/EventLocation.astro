@@ -41,7 +41,7 @@ const locationLine = location ?? 'In person';
     align-items: center;
     gap: 6px;
     font-size: var(--text-xs);
-    color: var(--color-text-secondary);
+    color: var(--foreground-secondary);
     line-height: 1;
   }
   .event-card__hybrid,
@@ -49,17 +49,17 @@ const locationLine = location ?? 'In person';
     margin-left: 0;
     padding: 6px 9px;
     border-radius: var(--radius-sm);
-    background: oklch(50% 0.005 250 / 0.025);
+    background: color-mix(in oklch, var(--foreground) 3%, var(--card));
   }
   :global(.event-card__location-icon) {
     flex-shrink: 0;
-    color: var(--color-text-muted);
+    color: var(--foreground-muted);
   }
   :global(.event-card__location-icon--globe) {
-    color: var(--blue-500, #2563eb);
+    color: var(--info);
   }
   :global(.event-card__location-icon--pin) {
-    color: var(--coral-600, #dc2626);
+    color: var(--error);
   }
 
   .event-card__hybrid {
@@ -76,7 +76,7 @@ const locationLine = location ?? 'In person';
     transform: translateY(-50%);
     height: 22px;
     width: 9px;
-    border: 1.5px solid var(--neutral-300);
+    border: 1.5px solid var(--border);
     border-right: none;
     border-radius: 2px 0 0 2px;
   }

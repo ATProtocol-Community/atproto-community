@@ -10,6 +10,9 @@ const navLinks = [
 ];
 
 const currentPath = Astro.url.pathname;
+const authErrorCode = Astro.locals.authproto?.errorCode;
+const authErrorDescription = Astro.locals.authproto?.errorDescription;
+const authError = authErrorDescription ?? authErrorCode;
 
 const isActive = (href: string) =>
   currentPath === href || (href !== '/' && currentPath.startsWith(href));
@@ -43,15 +46,66 @@ const isActive = (href: string) =>
 
     <AuthMenu />
   </nav>
+  {
+    authError && (
+      <div class="auth-alert-wrap">
+        <div class="auth-alert container" role="alert">
+          <strong>Sign-in failed</strong>
+          <span>{authError}</span>
+          {authErrorCode && authErrorCode !== authError && (
+            <code>{authErrorCode}</code>
+          )}
+        </div>
+      </div>
+    )
+  }
 </header>
 
 <style>
   .site-header {
     position: sticky;
     top: 0;
-    z-index: 10;
+    z-index: var(--z-header);
     background: var(--header-bg);
     border-bottom: 1px solid var(--header-border);
+  }
+
+  .auth-alert-wrap {
+    border-top: 1px solid var(--error);
+    background: color-mix(in oklch, var(--error) 10%, var(--background));
+  }
+
+  .site-header:has(.auth-menu[open]) .auth-alert-wrap {
+    display: none;
+  }
+
+  .auth-alert {
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    padding-block: var(--space-sm);
+    color: var(--foreground);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+  }
+
+  .auth-alert strong {
+    flex: 0 0 auto;
+    color: var(--error);
+  }
+
+  .auth-alert span {
+    min-width: 0;
+    overflow-wrap: anywhere;
+  }
+
+  .auth-alert code {
+    flex: 0 0 auto;
+    border: 1px solid color-mix(in oklch, var(--error) 35%, transparent);
+    border-radius: var(--radius-sm);
+    padding: 1px var(--space-xs);
+    color: var(--error);
+    font-size: var(--text-xs);
   }
 
   .site-nav {
@@ -158,6 +212,12 @@ const isActive = (href: string) =>
   @media (max-width: 640px) {
     .site-nav {
       gap: var(--space-sm);
+    }
+
+    .auth-alert {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 2px;
     }
 
     .nav-toggle-label {

@@ -125,13 +125,13 @@ const rsvpMessage = Astro.url.searchParams.get('rsvp');
   }
 
   .events-notice--success {
-    background: var(--teal-100);
-    color: var(--teal-600);
+    background: var(--success-muted);
+    color: var(--success-muted-foreground);
   }
 
   .events-notice--error {
-    background: var(--coral-100);
-    color: var(--coral-600);
+    background: var(--error-muted);
+    color: var(--error-muted-foreground);
   }
 
   .events-grid {
@@ -152,11 +152,11 @@ const rsvpMessage = Astro.url.searchParams.get('rsvp');
   }
   .events-past__heading {
     font-size: var(--text-lg);
-    color: var(--color-text-secondary);
+    color: var(--foreground-secondary);
     margin-bottom: var(--space-base);
   }
   .events-past :global(.event-card) {
     filter: grayscale(0.5);
-    background: var(--neutral-50);
+    background: var(--background);
   }
 </style>

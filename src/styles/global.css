@@ -47,6 +47,14 @@
   --radius-md: 10px;
   --radius-lg: 16px;
   --radius-pill: 999px;
+
+  /* --- Stacking --- */
+  --z-content: 1;
+  --z-feedback: 5;
+  --z-header: 10;
+  --z-popover: 20;
+  --z-popover-raised: 30;
+  --z-top: 100;
 }
 
 /* --- Reset & Base --- */
@@ -302,7 +310,7 @@ p + p {
   color: var(--primary-foreground);
   border-radius: var(--radius-sm);
   font-weight: 600;
-  z-index: 100;
+  z-index: var(--z-top);
 }
 .skip-link:focus {
   top: var(--space-sm);
