@@ -61,6 +61,13 @@
   description: France ATProtocol user group
   bluesky: https://bsky.app/profile/atproto.fr
 
+- name: ATProto Kraków
+  handle: atproto.krakow.pl
+  location: Kraków, PL
+  region: Europe
+  description: Kraków ATProtocol user group
+  bluesky: https://bsky.app/profile/atproto.krakow.pl
+
 - name: ATProto LA
   handle: atproto.la
   location: Los Angeles, CA
