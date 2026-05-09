@@ -151,3 +151,10 @@
   region: North America
   description: Vancouver ATProtocol user group
   bluesky: https://bsky.app/profile/vancouver.atprotocol.community
+
+- name: ATProto Kraków
+  handle: atproto.krakow.pl
+  location: Kraków, PL
+  region: Europe
+  description: Kraków ATProtocol user group
+  bluesky: https://bsky.app/profile/atproto.krakow.pl
