@@ -6,6 +6,7 @@ import { getLiveCollection } from 'astro:content';
 import Base from '../layouts/Base.astro';
 import Header from '../components/layout/Header.astro';
 import Footer from '../components/layout/Footer.astro';
+import HappeningNow from '../components/events/HappeningNow.astro';
 import EventCard from '../components/events/EventCard.astro';
 import RsvpNotice from '../components/events/RsvpNotice.astro';
 import { getRsvpsForEvents, type CalendarRsvp } from '../lib/rsvps';
@@ -64,6 +65,8 @@ const rsvpMessage = Astro.url.searchParams.get('rsvp');
         <p class="events-notice events-notice--error">We couldn't check which events you're going to right now.</p>
       )}
 
+      <HappeningNow events={upcomingEvents} />
+
       {upcomingEvents.length > 0 ? (
         <div class="grid-2 events-grid">
           {upcomingEvents.map((event) => (
@@ -110,7 +113,7 @@ const rsvpMessage = Astro.url.searchParams.get('rsvp');
 
   .events-sub {
     color: var(--foreground-secondary);
-    font-size: var(--text-sm);
+    font-size: var(--text-base);
     max-width: 55ch;
     line-height: var(--leading-relaxed);
   }

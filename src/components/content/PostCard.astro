@@ -24,6 +24,15 @@ const date = publishedAt ?? sharedAt;
 const authorLabel = author.displayName || `@${author.handle}`;
 const tag = tags?.[0];
 const community = `@${source}`;
+
+function hueFromString(input: string): number {
+  let h = 0;
+  for (let i = 0; i < input.length; i++) {
+    h = (h * 31 + input.charCodeAt(i)) | 0;
+  }
+  return ((h % 360) + 360) % 360;
+}
+const communityHue = hueFromString(source);
 ---
 
 <article class="post-card">
@@ -38,12 +47,15 @@ const community = `@${source}`;
       <h3 class="post-card__title">{title}</h3>
       {excerpt && <p class="post-card__excerpt">{excerpt}</p>}
       <div class="post-card__meta">
-        {tag && <span class="badge badge--tag">{tag}</span>}
-        <span class="badge badge--location">{community}</span>
+        <span
+          class="badge badge--location"
+          style={`--community-hue:${communityHue}`}
+        >{community}</span>
         <span class="post-card__author">{authorLabel}</span>
         <span class="post-card__date">
           <time datetime={date.toISOString()}>{date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</time>
         </span>
+        {tag && <span class="post-card__tag">#{tag}</span>}
       </div>
     </div>
   </a>
@@ -130,8 +142,20 @@ const community = `@${source}`;
   .post-card__date {
     color: var(--separator-fg);
   }
-  .post-card__date::before {
-    content: '·';
-    margin-right: var(--space-sm);
+
+  .post-card__tag {
+    color: var(--link);
+    font-weight: 500;
+    text-decoration: underline;
+    text-decoration-color: color-mix(in oklch, var(--link) 35%, transparent);
+    text-underline-offset: 2px;
+  }
+  .post-card__link:hover .post-card__tag {
+    text-decoration-color: currentColor;
+  }
+
+  .post-card :global(.badge--location) {
+    background: oklch(94% 0.04 var(--community-hue, 250));
+    color: oklch(38% 0.12 var(--community-hue, 250));
   }
 </style>

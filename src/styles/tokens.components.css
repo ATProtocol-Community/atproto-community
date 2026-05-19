@@ -6,14 +6,14 @@
 
 :root {
   /* Badges */
-  --badge-tag-bg: var(--primary-muted);
-  --badge-tag-fg: var(--primary-muted-foreground);
+  --badge-tag-bg: color-mix(in oklch, var(--color-accent) 18%, var(--color-base-100));
+  --badge-tag-fg: color-mix(in oklch, var(--color-accent) 75%, var(--color-base-content));
 
   --badge-online-bg: var(--primary-muted);
   --badge-online-fg: var(--primary-muted-foreground);
 
-  --badge-location-bg: var(--success-muted);
-  --badge-location-fg: var(--success-muted-foreground);
+  --badge-location-bg: color-mix(in oklch, var(--color-success) 22%, var(--color-base-100));
+  --badge-location-fg: color-mix(in oklch, var(--color-success) 75%, var(--color-base-content));
 
   /* Buttons */
   --btn-primary-bg: var(--primary);
