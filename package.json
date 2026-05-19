@@ -17,6 +17,7 @@
     "@astrojs/node": "^10.0.5",
     "@atproto/api": "^0.17.3",
     "@atproto/identity": "^0.4.8",
+    "@atproto/lex": "^0.1.0",
     "@atproto/syntax": "^0.4.3",
     "@fujocoded/astro-atproto-loader": "^0.2.1",
     "@fujocoded/authproto": "^0.3.1",
