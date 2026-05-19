@@ -8,7 +8,7 @@ import { getLiveCollection } from "astro:content";
 const communitiesResult = await getLiveCollection("communities");
 const communities = communitiesResult.entries?.map((entry) => entry.data) ?? [];
 
-const REGION_ORDER = ["North America", "South America", "Europe", "Online", "Other"];
+const REGION_ORDER = ["North America — USA", "North America — Canada", "South America", "Europe", "Online", "Other"];
 const grouped = new Map<string, typeof communities>();
 for (const community of communities) {
   const region = community.region ?? "Other";
@@ -41,8 +41,10 @@ const regions = [...grouped.keys()].sort(
           <div class="communities-grid">
             {grouped.get(region)!.map(c => (
               <div class="community-entry">
-                <CommunityCard {...c} />
-                {c.description && <p class="community-desc">{c.description}</p>}
+                <div class="community-entry__primary">
+                  <CommunityCard {...c} />
+                  {c.description && <p class="community-desc">{c.description}</p>}
+                </div>
               </div>
             ))}
           </div>
@@ -86,10 +88,17 @@ const regions = [...grouped.keys()].sort(
   }
 
   .community-entry {
+    display: block;
+    align-items: center;
+    gap: var(--space-base) var(--space-lg);
+  }
+
+  .community-entry__primary {
     display: flex;
     align-items: center;
     gap: var(--space-base);
     flex-wrap: wrap;
+    min-width: 0;
   }
 
   .community-desc {
