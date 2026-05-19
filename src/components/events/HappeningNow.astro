@@ -79,13 +79,16 @@ const startTimeFmt = new Intl.DateTimeFormat("en-US", {
 
         <div class="now-groups">
           {sections.map((section, sectionIndex) => (
-            <section class="now-group" aria-labelledby={`now-${section.id}`}>
+            <section
+              class="now-group"
+              aria-labelledby={`now-${section.id}`}
+              data-now-section={section.id}
+            >
               <h3 id={`now-${section.id}`} class="now-group__title">
                 {section.heading}
               </h3>
-              <div class="now-cards">
-                {section.items.length > 0 ? (
-                  section.items.map((item, itemIndex) => {
+              <div class="now-cards" data-now-cards>
+                {section.items.map((item, itemIndex) => {
                     const status = item.isLive ? "live" : "soon";
                     const relative = item.isLive
                       ? formatTimeLeft(item.endsAt.getTime() - nowMs)
@@ -102,41 +105,37 @@ const startTimeFmt = new Intl.DateTimeFormat("en-US", {
                       >
                         <div class="now-card__head">
                           <span class="now-card__status">
-                            {item.isLive ? (
-                              <>
-                                <span
-                                  class="now-card__live-dot"
-                                  aria-hidden="true"
-                                />
-                                {section.label}
-                              </>
-                            ) : (
-                              <>
-                                <svg
-                                  viewBox="0 0 12 12"
-                                  width="11"
-                                  height="11"
-                                  aria-hidden="true"
-                                >
-                                  <circle
-                                    cx="6"
-                                    cy="6"
-                                    r="5"
-                                    fill="none"
-                                    stroke="currentColor"
-                                    stroke-width="1.4"
-                                  />
-                                  <path
-                                    d="M6 3.2v3l2 1.2"
-                                    stroke="currentColor"
-                                    stroke-width="1.4"
-                                    fill="none"
-                                    stroke-linecap="round"
-                                  />
-                                </svg>
-                                {section.label}
-                              </>
-                            )}
+                            <span
+                              class="now-card__live-dot"
+                              aria-hidden="true"
+                              data-status-live-icon
+                              hidden={!item.isLive}
+                            />
+                            <svg
+                              viewBox="0 0 12 12"
+                              width="11"
+                              height="11"
+                              aria-hidden="true"
+                              data-status-soon-icon
+                              hidden={item.isLive}
+                            >
+                              <circle
+                                cx="6"
+                                cy="6"
+                                r="5"
+                                fill="none"
+                                stroke="currentColor"
+                                stroke-width="1.4"
+                              />
+                              <path
+                                d="M6 3.2v3l2 1.2"
+                                stroke="currentColor"
+                                stroke-width="1.4"
+                                fill="none"
+                                stroke-linecap="round"
+                              />
+                            </svg>
+                            <span data-status-label>{section.label}</span>
                           </span>
                           <span
                             class="now-card__relative"
@@ -170,10 +169,10 @@ const startTimeFmt = new Intl.DateTimeFormat("en-US", {
                         </div>
                       </a>
                     );
-                  })
-                ) : (
-                  <p class="now-empty">{section.empty}</p>
-                )}
+                  })}
+                <p class="now-empty" data-now-empty hidden={section.items.length > 0}>
+                  {section.empty}
+                </p>
               </div>
             </section>
           ))}
@@ -457,6 +456,96 @@ const startTimeFmt = new Intl.DateTimeFormat("en-US", {
     });
   }
 
+  function getLocalDateKey(date: Date): string {
+    return new Intl.DateTimeFormat("en-CA", {
+      year: "numeric",
+      month: "2-digit",
+      day: "2-digit",
+    }).format(date);
+  }
+
+  function setStatus(card: HTMLElement, mode: "live" | "soon", label: string) {
+    card.classList.toggle("now-card--live", mode === "live");
+    card.classList.toggle("now-card--soon", mode === "soon");
+
+    const liveIcon = card.querySelector<HTMLElement>("[data-status-live-icon]");
+    const soonIcon = card.querySelector<HTMLElement>("[data-status-soon-icon]");
+    const labelEl = card.querySelector<HTMLElement>("[data-status-label]");
+    const rel = card.querySelector<HTMLElement>("[data-relative]");
+
+    liveIcon?.toggleAttribute("hidden", mode !== "live");
+    soonIcon?.toggleAttribute("hidden", mode === "live");
+    if (labelEl) labelEl.textContent = label;
+    if (rel) rel.dataset.relativeMode = mode;
+  }
+
+  function regroupNowStrip() {
+    const now = Date.now();
+    const todayKey = getLocalDateKey(new Date(now));
+    const weekEndsAt = now + 7 * 24 * 60 * 60 * 1000;
+    const sections = new Map(
+      Array.from(document.querySelectorAll<HTMLElement>("[data-now-section]")).map(
+        (section) => [section.dataset.nowSection, section],
+      ),
+    );
+    const buckets = {
+      now: [] as HTMLElement[],
+      today: [] as HTMLElement[],
+      week: [] as HTMLElement[],
+    };
+
+    document.querySelectorAll<HTMLElement>(".now-card").forEach((card) => {
+      const startsAt = card.dataset.eventStartsAt;
+      const endsAt = card.dataset.eventEndsAt;
+      if (!startsAt || !endsAt) return;
+
+      const start = new Date(startsAt).getTime();
+      const end = new Date(endsAt).getTime();
+      if (end <= now) return;
+
+      if (start <= now) {
+        buckets.now.push(card);
+        setStatus(card, "live", "Live");
+      } else if (getLocalDateKey(new Date(start)) === todayKey) {
+        buckets.today.push(card);
+        setStatus(card, "soon", "Today");
+      } else if (start < weekEndsAt) {
+        buckets.week.push(card);
+        setStatus(card, "soon", "This week");
+      }
+    });
+
+    buckets.now.sort(
+      (a, b) =>
+        new Date(a.dataset.eventEndsAt ?? 0).getTime() -
+        new Date(b.dataset.eventEndsAt ?? 0).getTime(),
+    );
+    buckets.today.sort(
+      (a, b) =>
+        new Date(a.dataset.eventStartsAt ?? 0).getTime() -
+        new Date(b.dataset.eventStartsAt ?? 0).getTime(),
+    );
+    buckets.week.sort(
+      (a, b) =>
+        new Date(a.dataset.eventStartsAt ?? 0).getTime() -
+        new Date(b.dataset.eventStartsAt ?? 0).getTime(),
+    );
+
+    for (const [id, section] of sections) {
+      if (!id) continue;
+      const cards = section.querySelector<HTMLElement>("[data-now-cards]");
+      const empty = section.querySelector<HTMLElement>("[data-now-empty]");
+      const items = buckets[id as keyof typeof buckets] ?? [];
+      if (!cards || !empty) continue;
+
+      items.forEach((card) => cards.insertBefore(card, empty));
+      empty.toggleAttribute("hidden", items.length > 0);
+    }
+  }
+
   localizeTimes();
+  regroupNowStrip();
+  tickNowStrip();
   setInterval(tickNowStrip, 30000);
+  setInterval(regroupNowStrip, 30000);
 </script>
