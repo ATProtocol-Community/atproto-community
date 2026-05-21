@@ -413,12 +413,10 @@ const startTimeFmt = new Intl.DateTimeFormat("en-US", {
     formatStartsIn,
     formatTimeLeft,
   } from "../../lib/community/happening-now";
-
-  const localTimeFmt = new Intl.DateTimeFormat(undefined, {
-    hour: "numeric",
-    minute: "2-digit",
-    timeZoneName: "short",
-  });
+  import {
+    formatLocalEventClock,
+    readEventTiming,
+  } from "../../lib/client/event-time";
 
   function localizeTimes() {
     document
@@ -426,7 +424,7 @@ const startTimeFmt = new Intl.DateTimeFormat("en-US", {
       .forEach((el) => {
         const iso = el.getAttribute("datetime");
         if (!iso) return;
-        el.textContent = localTimeFmt.format(new Date(iso));
+        el.textContent = formatLocalEventClock(new Date(iso));
       });
   }
 
@@ -456,14 +454,6 @@ const startTimeFmt = new Intl.DateTimeFormat("en-US", {
     });
   }
 
-  function getLocalDateKey(date: Date): string {
-    return new Intl.DateTimeFormat("en-CA", {
-      year: "numeric",
-      month: "2-digit",
-      day: "2-digit",
-    }).format(date);
-  }
-
   function setStatus(card: HTMLElement, mode: "live" | "soon", label: string) {
     card.classList.toggle("now-card--live", mode === "live");
     card.classList.toggle("now-card--soon", mode === "soon");
@@ -480,9 +470,7 @@ const startTimeFmt = new Intl.DateTimeFormat("en-US", {
   }
 
   function regroupNowStrip() {
-    const now = Date.now();
-    const todayKey = getLocalDateKey(new Date(now));
-    const weekEndsAt = now + 7 * 24 * 60 * 60 * 1000;
+    const now = new Date();
     const sections = new Map(
       Array.from(document.querySelectorAll<HTMLElement>("[data-now-section]")).map(
         (section) => [section.dataset.nowSection, section],
@@ -495,21 +483,16 @@ const startTimeFmt = new Intl.DateTimeFormat("en-US", {
     };
 
     document.querySelectorAll<HTMLElement>(".now-card").forEach((card) => {
-      const startsAt = card.dataset.eventStartsAt;
-      const endsAt = card.dataset.eventEndsAt;
-      if (!startsAt || !endsAt) return;
+      const timing = readEventTiming(card, now);
+      if (!timing || timing.state === "past") return;
 
-      const start = new Date(startsAt).getTime();
-      const end = new Date(endsAt).getTime();
-      if (end <= now) return;
-
-      if (start <= now) {
+      if (timing.state === "live") {
         buckets.now.push(card);
         setStatus(card, "live", "Live");
-      } else if (getLocalDateKey(new Date(start)) === todayKey) {
+      } else if (timing.state === "today") {
         buckets.today.push(card);
         setStatus(card, "soon", "Today");
-      } else if (start < weekEndsAt) {
+      } else if (timing.state === "week") {
         buckets.week.push(card);
         setStatus(card, "soon", "This week");
       }

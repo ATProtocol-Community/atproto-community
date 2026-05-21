@@ -54,27 +54,13 @@ import '../styles/global.css';
     </main>
     <slot name="footer" />
     <script>
-      // Localize event times to the user's timezone.
+      import { applyEventCardTiming } from "../lib/client/event-time";
+
+      // Localize event times and day labels to the user's timezone.
       // Falls back to the UTC time rendered at build time if anything fails.
-      document.querySelectorAll('time[data-event-time]').forEach((el) => {
+      document.querySelectorAll<HTMLElement>(".event-card").forEach((el) => {
         try {
-          const iso = el.getAttribute('datetime');
-          if (!iso) return;
-          const d = new Date(iso);
-          if (isNaN(d.getTime())) return;
-          const date = d.toLocaleDateString('en-US', {
-            weekday: 'short',
-            month: 'short',
-            day: 'numeric',
-          });
-          const time = d.toLocaleTimeString('en-US', {
-            hour: 'numeric',
-            minute: '2-digit',
-          });
-          const tz = Intl.DateTimeFormat().resolvedOptions().timeZone;
-          const short = d.toLocaleTimeString('en-US', { timeZoneName: 'short' })
-            .replace(/.*\s/, ''); // extract "PDT", "EST", etc.
-          el.textContent = `${date} · ${time} ${short}`;
+          applyEventCardTiming(el);
         } catch {
           // Keep the UTC fallback rendered at build time
         }
