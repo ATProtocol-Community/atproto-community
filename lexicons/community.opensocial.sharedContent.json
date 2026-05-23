@@ -1,0 +1,78 @@
+{
+  "lexicon": 1,
+  "id": "community.opensocial.sharedContent",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A wrapper record stored in a community's repo that references external content (e.g. a standard.site document) shared by a member. Deleting this record removes the content from the community.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": [
+          "type",
+          "documentUri",
+          "documentCid",
+          "sharedBy",
+          "title",
+          "sharedAt"
+        ],
+        "properties": {
+          "type": {
+            "type": "string",
+            "description": "The kind of content being shared",
+            "knownValues": ["document", "event"]
+          },
+          "documentUri": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "AT-URI of the source record (e.g. at://did:plc:abc/site.standard.document/3mjpdo4ylyy23)"
+          },
+          "documentCid": {
+            "type": "string",
+            "description": "CID of the source record at time of sharing, for version pinning"
+          },
+          "sharedBy": {
+            "type": "string",
+            "format": "did",
+            "description": "DID of the member who shared the content"
+          },
+          "title": {
+            "type": "string",
+            "maxGraphemes": 512,
+            "description": "Cached title from the source record for display without re-fetching"
+          },
+          "path": {
+            "type": "string",
+            "maxGraphemes": 1024,
+            "description": "Cached URL path from the source record"
+          },
+          "sharedAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "When the content was shared with the community"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "Cached event start time (only present when type=event)"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "Cached event end time (only present when type=event)"
+          },
+          "location": {
+            "type": "string",
+            "maxGraphemes": 512,
+            "description": "Cached event location string (only present when type=event)"
+          },
+          "mode": {
+            "type": "string",
+            "description": "Cached event mode (only present when type=event)",
+            "knownValues": ["in-person", "virtual", "hybrid"]
+          }
+        }
+      }
+    }
+  }
+}

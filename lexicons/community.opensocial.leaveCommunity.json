@@ -1,0 +1,33 @@
+{
+  "lexicon": 1,
+  "id": "community.opensocial.leaveCommunity",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Leave a community.",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["communityDid", "userDid"],
+          "properties": {
+            "communityDid": { "type": "string", "format": "did" },
+            "userDid": { "type": "string", "format": "did" }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      "errors": [
+        { "name": "CommunityNotFound" },
+        { "name": "NotMember" },
+        { "name": "CannotLeaveAsAdmin" }
+      ]
+    }
+  }
+}

@@ -1,0 +1,19 @@
+{
+  "lexicon": 1,
+  "id": "community.opensocial.authBasic",
+  "description": "Permission set for basic Open Social access — joining and managing community memberships.",
+  "defs": {
+    "main": {
+      "type": "permission-set",
+      "title": "Open Social Basic Access",
+      "detail": "Grants the ability to create, update, and delete community membership records in the user's own repository. This is the minimum permission needed for joining and leaving communities.",
+      "permissions": [
+        {
+          "type": "permission",
+          "resource": "repo",
+          "collection": ["community.opensocial.membership"]
+        }
+      ]
+    }
+  }
+}

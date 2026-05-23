@@ -1,0 +1,35 @@
+{
+  "lexicon": 1,
+  "id": "community.opensocial.removeMember",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Remove a member from a community (admin only).",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["communityDid", "adminDid", "memberDid"],
+          "properties": {
+            "communityDid": { "type": "string", "format": "did" },
+            "adminDid": { "type": "string", "format": "did" },
+            "memberDid": { "type": "string", "format": "did" }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      "errors": [
+        { "name": "CommunityNotFound" },
+        { "name": "PermissionDenied" },
+        { "name": "MemberNotFound" },
+        { "name": "CannotRemoveAdmin" }
+      ]
+    }
+  }
+}

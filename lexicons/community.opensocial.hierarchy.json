@@ -1,0 +1,48 @@
+{
+  "lexicon": 1,
+  "id": "community.opensocial.hierarchy",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "Records one side of a parent-child hierarchy relationship between communities. Each community stores their own record. A relationship is active only when both communities have a record referencing each other with status=approved.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": [
+          "role",
+          "counterpartyDid",
+          "status",
+          "requestedBy",
+          "createdAt"
+        ],
+        "properties": {
+          "role": {
+            "type": "string",
+            "description": "Whether this community is the parent or child in this relationship",
+            "knownValues": ["parent", "child"]
+          },
+          "counterpartyDid": {
+            "type": "string",
+            "format": "did",
+            "description": "DID of the other community in this relationship"
+          },
+          "status": {
+            "type": "string",
+            "description": "Status of this side of the relationship",
+            "knownValues": ["pending", "approved"]
+          },
+          "requestedBy": {
+            "type": "string",
+            "format": "did",
+            "description": "DID of the admin who created this record (initiated or approved the relationship)"
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "When this record was created"
+          }
+        }
+      }
+    }
+  }
+}

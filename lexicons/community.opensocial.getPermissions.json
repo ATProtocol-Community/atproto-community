@@ -1,0 +1,52 @@
+{
+  "lexicon": 1,
+  "id": "community.opensocial.getPermissions",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Get permissions and user roles for a community.",
+      "parameters": {
+        "type": "params",
+        "required": ["communityDid"],
+        "properties": {
+          "communityDid": { "type": "string", "format": "did" },
+          "userDid": { "type": "string", "format": "did" }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["permissions", "userRoles"],
+          "properties": {
+            "permissions": {
+              "type": "array",
+              "items": {
+                "type": "ref",
+                "ref": "#permission"
+              }
+            },
+            "userRoles": {
+              "type": "array",
+              "items": { "type": "string" }
+            }
+          }
+        }
+      },
+      "errors": [
+        { "name": "CommunityNotFound" }
+      ]
+    },
+    "permission": {
+      "type": "object",
+      "required": ["collection", "canCreate", "canRead", "canUpdate", "canDelete"],
+      "properties": {
+        "collection": { "type": "string" },
+        "canCreate": { "type": "string" },
+        "canRead": { "type": "string" },
+        "canUpdate": { "type": "string" },
+        "canDelete": { "type": "string" }
+      }
+    }
+  }
+}

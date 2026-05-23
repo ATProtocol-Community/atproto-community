@@ -1,0 +1,53 @@
+{
+  "lexicon": 1,
+  "id": "community.opensocial.searchCommunities",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "Search for communities.",
+      "parameters": {
+        "type": "params",
+        "properties": {
+          "query": { "type": "string" },
+          "userDid": { "type": "string", "format": "did" },
+          "limit": { "type": "integer", "default": 25, "maximum": 100 },
+          "cursor": { "type": "string" }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["communities"],
+          "properties": {
+            "communities": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": [
+                  "did",
+                  "handle",
+                  "displayName",
+                  "type",
+                  "memberCount"
+                ],
+                "properties": {
+                  "did": { "type": "string", "format": "did" },
+                  "handle": { "type": "string" },
+                  "displayName": { "type": "string" },
+                  "type": { "type": "string" },
+                  "isAdmin": { "type": "boolean" },
+                  "memberCount": { "type": "integer" },
+                  "createdAt": { "type": "string", "format": "datetime" },
+                  "avatar": { "type": "string" }
+                }
+              }
+            },
+            "cursor": { "type": "string" }
+          }
+        }
+      },
+      "errors": [{ "name": "QueryTooShort" }]
+    }
+  }
+}

@@ -1,0 +1,36 @@
+{
+  "lexicon": 1,
+  "id": "community.opensocial.membershipProof",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "Community's proof/confirmation of a member's membership (stored in community's repo). Deleting this record effectively removes the member from the community, even if their own membership record persists in their PDS.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": ["memberDid", "cid"],
+        "properties": {
+          "memberDid": {
+            "type": "string",
+            "format": "did",
+            "description": "DID of the member whose membership is being confirmed"
+          },
+          "membershipRef": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "AT-URI reference to the user's community.opensocial.membership record"
+          },
+          "cid": {
+            "type": "string",
+            "description": "CID of the member's community.opensocial.membership record"
+          },
+          "confirmedAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "When the membership was confirmed by the community"
+          }
+        }
+      }
+    }
+  }
+}

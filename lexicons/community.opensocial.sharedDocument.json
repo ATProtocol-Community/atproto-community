@@ -1,0 +1,80 @@
+{
+  "lexicon": 1,
+  "id": "community.opensocial.sharedDocument",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "A document shared by a member with a community. Stored in the community's repo. The record contains pre-resolved fields (url, source, author) so consumers can display the document without additional lookups.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": [
+          "documentUri",
+          "documentCid",
+          "sharedBy",
+          "title",
+          "sharedAt",
+          "url",
+          "source",
+          "author"
+        ],
+        "properties": {
+          "documentUri": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "AT-URI of the source record (e.g. at://did:plc:abc/site.standard.document/3mjpdo4ylyy23)"
+          },
+          "documentCid": {
+            "type": "string",
+            "description": "CID of the source record at time of sharing, for version pinning"
+          },
+          "sharedBy": {
+            "type": "string",
+            "format": "did",
+            "description": "DID of the member who shared the content"
+          },
+          "title": {
+            "type": "string",
+            "maxGraphemes": 512,
+            "description": "Title of the document"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Pre-resolved web URL for the document (e.g. https://example.com/blog/my-post)"
+          },
+          "source": {
+            "type": "string",
+            "maxGraphemes": 128,
+            "description": "Platform or publication name where the document originates (e.g. 'leaflet', 'whtwnd')",
+            "knownValues": ["leaflet", "whtwnd", "unknown"]
+          },
+          "author": {
+            "type": "string",
+            "format": "did",
+            "description": "DID of the original content creator (may differ from sharedBy)"
+          },
+          "path": {
+            "type": "string",
+            "maxGraphemes": 1024,
+            "description": "URL path from the source record"
+          },
+          "tags": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "maxGraphemes": 128
+            },
+            "maxLength": 32,
+            "description": "Tags from the source document"
+          },
+          "sharedAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "When the document was shared with the community"
+          }
+        }
+      }
+    }
+  }
+}

@@ -1,0 +1,45 @@
+{
+  "lexicon": 1,
+  "id": "community.opensocial.getPendingMembers",
+  "defs": {
+    "main": {
+      "type": "query",
+      "description": "List pending member requests for a community (admin only).",
+      "parameters": {
+        "type": "params",
+        "required": ["communityDid", "adminDid"],
+        "properties": {
+          "communityDid": { "type": "string", "format": "did" },
+          "adminDid": { "type": "string", "format": "did" }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["members"],
+          "properties": {
+            "members": {
+              "type": "array",
+              "items": {
+                "type": "object",
+                "required": ["userDid", "requestedAt"],
+                "properties": {
+                  "userDid": { "type": "string", "format": "did" },
+                  "requestedAt": { "type": "string", "format": "datetime" },
+                  "handle": { "type": "string" },
+                  "displayName": { "type": "string" },
+                  "avatar": { "type": "string" }
+                }
+              }
+            }
+          }
+        }
+      },
+      "errors": [
+        { "name": "CommunityNotFound" },
+        { "name": "PermissionDenied" }
+      ]
+    }
+  }
+}

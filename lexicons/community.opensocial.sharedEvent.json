@@ -1,0 +1,91 @@
+{
+  "lexicon": 1,
+  "id": "community.opensocial.sharedEvent",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "An event shared by a member with a community. Stored in the community's repo. The record contains pre-resolved fields (url, source, author) so consumers can display the event without additional lookups.",
+      "key": "tid",
+      "record": {
+        "type": "object",
+        "required": [
+          "documentUri",
+          "documentCid",
+          "sharedBy",
+          "title",
+          "sharedAt",
+          "url",
+          "source",
+          "author"
+        ],
+        "properties": {
+          "documentUri": {
+            "type": "string",
+            "format": "at-uri",
+            "description": "AT-URI of the source event record (e.g. at://did:plc:abc/community.lexicon.calendar.event/3mjpdo4ylyy23)"
+          },
+          "documentCid": {
+            "type": "string",
+            "description": "CID of the source record at time of sharing, for version pinning"
+          },
+          "sharedBy": {
+            "type": "string",
+            "format": "did",
+            "description": "DID of the member who shared the event"
+          },
+          "title": {
+            "type": "string",
+            "maxGraphemes": 512,
+            "description": "Title/name of the event"
+          },
+          "url": {
+            "type": "string",
+            "format": "uri",
+            "description": "Pre-resolved web URL for the event (e.g. https://smokesignal.events/did/rkey or OpenMeet URL)"
+          },
+          "source": {
+            "type": "string",
+            "maxGraphemes": 128,
+            "description": "Platform name where the event originates (e.g. 'smokesignal', 'openmeet')",
+            "knownValues": ["smokesignal", "openmeet", "unknown"]
+          },
+          "author": {
+            "type": "string",
+            "format": "did",
+            "description": "DID of the original event creator (may differ from sharedBy)"
+          },
+          "path": {
+            "type": "string",
+            "maxGraphemes": 1024,
+            "description": "URL path if applicable"
+          },
+          "startsAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "Event start time"
+          },
+          "endsAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "Event end time"
+          },
+          "location": {
+            "type": "string",
+            "maxGraphemes": 512,
+            "description": "Event location display string"
+          },
+          "mode": {
+            "type": "string",
+            "description": "Event attendance mode",
+            "knownValues": ["in-person", "virtual", "hybrid"]
+          },
+          "sharedAt": {
+            "type": "string",
+            "format": "datetime",
+            "description": "When the event was shared with the community"
+          }
+        }
+      }
+    }
+  }
+}

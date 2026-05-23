@@ -1,0 +1,85 @@
+{
+  "lexicon": 1,
+  "id": "community.opensocial.profile",
+  "defs": {
+    "main": {
+      "type": "record",
+      "description": "Community profile metadata",
+      "key": "literal:self",
+      "record": {
+        "type": "object",
+        "required": ["displayName", "createdAt"],
+        "properties": {
+          "displayName": {
+            "type": "string",
+            "maxLength": 64,
+            "description": "The community's display name"
+          },
+          "description": {
+            "type": "string",
+            "maxLength": 512,
+            "description": "Brief description of the community"
+          },
+          "avatar": {
+            "type": "blob",
+            "accept": ["image/png", "image/jpeg"],
+            "maxSize": 1000000
+          },
+          "banner": {
+            "type": "blob",
+            "accept": ["image/png", "image/jpeg"],
+            "maxSize": 1000000
+          },
+          "createdAt": {
+            "type": "string",
+            "format": "datetime"
+          },
+          "type": {
+            "type": "string",
+            "enum": ["open", "admin-approved", "private"],
+            "description": "The type of community: open (anyone can join), admin-approved (requires approval), or private (invite-only)"
+          },
+          "guidelines": {
+            "type": "string",
+            "maxLength": 3000,
+            "description": "Community guidelines and rules"
+          },
+          "labelers": {
+            "type": "array",
+            "items": {
+              "type": "string",
+              "format": "did"
+            },
+            "description": "List of labeler DIDs for community moderation"
+          },
+          "links": {
+            "type": "array",
+            "maxLength": 16,
+            "description": "External links surfaced on the community's page (e.g. website, Discord, docs)",
+            "items": {
+              "type": "ref",
+              "ref": "#linkEntry"
+            }
+          }
+        }
+      }
+    },
+    "linkEntry": {
+      "type": "object",
+      "required": ["name", "url"],
+      "properties": {
+        "name": {
+          "type": "string",
+          "maxLength": 64,
+          "description": "Display label for the link"
+        },
+        "url": {
+          "type": "string",
+          "format": "uri",
+          "maxLength": 1024,
+          "description": "Absolute URL the link points to"
+        }
+      }
+    }
+  }
+}

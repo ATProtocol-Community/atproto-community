@@ -28,6 +28,7 @@ export default defineConfig({
       scopes: {
         additionalScopes: [
           "repo:community.lexicon.calendar.rsvp?action=create&action=update",
+          "repo:community.opensocial.membership?action=create&action=update",
         ],
       },
       driver: {

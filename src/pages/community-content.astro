@@ -6,11 +6,79 @@ import Header from '../components/layout/Header.astro';
 import Footer from '../components/layout/Footer.astro';
 import PostCard from '../components/content/PostCard.astro';
 import { getLiveCollection } from 'astro:content';
+import { actions } from 'astro:actions';
+import { getMembership } from '../lib/opensocial/membership';
+import { getAtmosphereCommunityDid } from '../lib/community/atmosphere';
+
+const joinResult = Astro.getActionResult(actions.joinAtmosphereCommunity);
+if (joinResult?.data?.redirectUrl) {
+  return Astro.redirect(joinResult.data.redirectUrl, 303);
+}
+if (joinResult?.error) {
+  return Astro.redirect('/community-content?join=error', 303);
+}
+
+const leaveResult = Astro.getActionResult(actions.leaveAtmosphereCommunity);
+if (leaveResult?.data?.redirectUrl) {
+  return Astro.redirect(leaveResult.data.redirectUrl, 303);
+}
+if (leaveResult?.error) {
+  return Astro.redirect('/community-content?join=error', 303);
+}
 
 const feedResult = await getLiveCollection('feed');
 const mergedPosts = (feedResult.entries ?? [])
   .map((entry) => entry.data)
   .sort((a, b) => (b.publishedAt ?? b.sharedAt).getTime() - (a.publishedAt ?? a.sharedAt).getTime());
+
+const loggedInUser = Astro.locals.loggedInUser;
+
+// Resolve membership for the signed-in viewer so we can swap the join CTA out
+// once they're in. Failures here shouldn't take down the page — treat them as
+// "unknown" and fall back to showing the join button.
+let isMember = false;
+if (loggedInUser) {
+  try {
+    const communityDid = await getAtmosphereCommunityDid();
+    const membership = await getMembership({
+      communityDid,
+      userDid: loggedInUser.did,
+    });
+    isMember = membership.isMember;
+  } catch (err) {
+    console.warn('[community-content] membership lookup failed', err);
+  }
+}
+
+type JoinStatusKey =
+  | 'ok'
+  | 'pending'
+  | 'already'
+  | 'missing'
+  | 'error'
+  | 'signin'
+  | 'permission'
+  | 'left'
+  | 'not-member'
+  | 'admin-block';
+const JOIN_STATUS_COPY: Record<JoinStatusKey, { tone: 'success' | 'info' | 'error'; message: string }> = {
+  ok: { tone: 'success', message: "You're in — welcome to the community." },
+  pending: { tone: 'info', message: 'Request submitted — an admin will review it shortly.' },
+  already: { tone: 'info', message: "You're already a member." },
+  missing: { tone: 'error', message: "Couldn't find the community right now. Try again later." },
+  error: { tone: 'error', message: "Something went wrong. Try again later." },
+  signin: { tone: 'error', message: 'Sign in first, then try again.' },
+  permission: { tone: 'error', message: 'Your login needs community membership permission. Log out and back in, then try again.' },
+  left: { tone: 'info', message: "You've left the community." },
+  'not-member': { tone: 'info', message: "You weren't a member of the community." },
+  'admin-block': { tone: 'error', message: "Admins can't leave the community. Hand off the role first." },
+};
+
+const joinParam = Astro.url.searchParams.get('join');
+const joinStatus =
+  joinParam && joinParam in JOIN_STATUS_COPY
+    ? JOIN_STATUS_COPY[joinParam as JoinStatusKey]
+    : null;
 ---
 
 <Base title="Community Content" description="Blog posts and articles from across the AT Protocol community.">
@@ -33,6 +101,54 @@ const mergedPosts = (feedResult.entries ?? [])
         >.
       </p>
 
+      {joinStatus && (
+        <p class={`join-status join-status--${joinStatus.tone}`} role="status">
+          {joinStatus.message}
+        </p>
+      )}
+
+      {!loggedInUser ? (
+        <aside class="share-cta" aria-label="Share your content">
+          <div class="share-cta__text">
+            <p class="share-cta__title">Want to share yours?</p>
+            <p class="share-cta__sub">
+              Log into the Atmosphere, join the community, and share your content!
+            </p>
+          </div>
+          <button class="share-cta__button" type="button" data-open-auth>
+            Log in & join the community
+          </button>
+        </aside>
+      ) : isMember ? (
+        <aside class="share-cta share-cta--member" aria-label="You're a member">
+          <div class="share-cta__text">
+            <p class="share-cta__title">You're in the community.</p>
+            <p class="share-cta__sub">
+              Posts you share via your community account will appear here.
+            </p>
+          </div>
+          <form method="POST" action={actions.leaveAtmosphereCommunity}>
+            <button class="share-cta__button share-cta__button--ghost" type="submit">
+              Leave the community
+            </button>
+          </form>
+        </aside>
+      ) : (
+        <aside class="share-cta" aria-label="Join the community">
+          <div class="share-cta__text">
+            <p class="share-cta__title">Want to share yours?</p>
+            <p class="share-cta__sub">
+              Join atmosphere.community — your posts can show up here too.
+            </p>
+          </div>
+          <form method="POST" action={actions.joinAtmosphereCommunity}>
+            <button class="share-cta__button" type="submit">
+              Join the community
+            </button>
+          </form>
+        </aside>
+      )}
+
       {mergedPosts.length > 0 ? (
         <div class="posts-list">
           {mergedPosts.map((post) => <PostCard {...post} />)}
@@ -51,6 +167,18 @@ const mergedPosts = (feedResult.entries ?? [])
 
   <Footer slot="footer" />
 </Base>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-open-auth]').forEach((trigger) => {
+    trigger.addEventListener('click', () => {
+      const menu = document.querySelector<HTMLDetailsElement>('details.auth-menu');
+      if (!menu) return;
+      menu.open = true;
+      menu.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      menu.querySelector<HTMLInputElement>('input[name="atproto-id"]')?.focus({ preventScroll: true });
+    });
+  });
+</script>
 
 <style>
   .content-page h1 {
@@ -78,5 +206,96 @@ const mergedPosts = (feedResult.entries ?? [])
     color: var(--foreground-secondary);
     background: var(--muted);
     border-radius: var(--radius-md);
+  }
+
+  .share-cta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-lg);
+    flex-wrap: wrap;
+    margin-top: var(--space-xl);
+    padding: var(--space-lg) var(--space-xl);
+    background: var(--primary-muted);
+    border: 1px solid var(--primary-muted);
+    border-radius: var(--radius-md);
+  }
+
+  .share-cta__text {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .share-cta__title {
+    margin: 0;
+    color: var(--primary);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: 700;
+  }
+
+  .share-cta__sub {
+    margin: 0;
+    color: var(--foreground-secondary);
+    font-size: var(--text-xs);
+    line-height: var(--leading-normal);
+  }
+
+  .share-cta__button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    padding: var(--space-sm) var(--space-lg);
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border: 0;
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+
+  .share-cta__button:hover {
+    background: var(--primary-hover);
+  }
+
+  .share-cta__button:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  .share-cta__button--ghost {
+    background: transparent;
+    color: var(--primary);
+    border: 1px solid color-mix(in oklch, var(--primary) 35%, var(--border));
+  }
+  .share-cta__button--ghost:hover {
+    background: color-mix(in oklch, var(--primary) 10%, transparent);
+  }
+
+  .join-status {
+    margin-top: var(--space-xl);
+    padding: var(--space-md) var(--space-lg);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+  }
+
+  .join-status--success {
+    background: var(--success-muted, var(--primary-muted));
+    color: var(--success, var(--primary));
+  }
+
+  .join-status--info {
+    background: var(--muted);
+    color: var(--foreground-secondary);
+  }
+
+  .join-status--error {
+    background: var(--error-muted, var(--muted));
+    color: var(--error, var(--foreground));
   }
 </style>

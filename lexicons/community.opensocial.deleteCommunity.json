@@ -1,0 +1,33 @@
+{
+  "lexicon": 1,
+  "id": "community.opensocial.deleteCommunity",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Delete a community. Only the sole remaining admin can delete.",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["communityDid", "adminDid"],
+          "properties": {
+            "communityDid": { "type": "string", "format": "did" },
+            "adminDid": { "type": "string", "format": "did" }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "properties": {}
+        }
+      },
+      "errors": [
+        { "name": "CommunityNotFound" },
+        { "name": "PermissionDenied" },
+        { "name": "MultipleAdmins" }
+      ]
+    }
+  }
+}

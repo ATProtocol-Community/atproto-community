@@ -1,0 +1,40 @@
+{
+  "lexicon": 1,
+  "id": "community.opensocial.createRecord",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Create a record in a community's PDS repo on behalf of a member.",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["communityDid", "userDid", "collection", "record"],
+          "properties": {
+            "communityDid": { "type": "string", "format": "did" },
+            "userDid": { "type": "string", "format": "did" },
+            "collection": { "type": "string" },
+            "record": { "type": "unknown" },
+            "rkey": { "type": "string" }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["uri", "cid"],
+          "properties": {
+            "uri": { "type": "string", "format": "at-uri" },
+            "cid": { "type": "string" }
+          }
+        }
+      },
+      "errors": [
+        { "name": "CommunityNotFound" },
+        { "name": "PermissionDenied" },
+        { "name": "InvalidInput" }
+      ]
+    }
+  }
+}

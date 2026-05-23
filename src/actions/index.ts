@@ -14,6 +14,44 @@ import {
   setRsvpStatus,
   type RsvpStatus,
 } from "../lib/rsvps";
+import { getAtmosphereCommunityDid } from "../lib/community/atmosphere";
+import {
+  OpenSocialCommunityError,
+  ensureUserMembershipRecord,
+  getMembership,
+  joinCommunity,
+  leaveCommunity,
+} from "../lib/opensocial/membership";
+
+function joinRedirect(status: string): string {
+  return `/community-content?join=${encodeURIComponent(status)}`;
+}
+
+function joinStatusFromError(err: OpenSocialCommunityError): string {
+  switch (err.code) {
+    case "AlreadyMember":
+      return "already";
+    case "AlreadyPending":
+      return "pending";
+    case "CommunityNotFound":
+      return "missing";
+    default:
+      return "error";
+  }
+}
+
+function leaveStatusFromError(err: OpenSocialCommunityError): string {
+  switch (err.code) {
+    case "NotMember":
+      return "not-member";
+    case "CommunityNotFound":
+      return "missing";
+    case "CannotLeaveAsAdmin":
+      return "admin-block";
+    default:
+      return "error";
+  }
+}
 
 const EVENT_COLLECTION = "community.lexicon.calendar.event";
 
@@ -56,6 +94,71 @@ function isPermissionError(error: unknown): boolean {
 }
 
 export const server = {
+  joinAtmosphereCommunity: defineAction({
+    accept: "form",
+    handler: async (_input, ctx) => {
+      const loggedInUser = ctx.locals.loggedInUser;
+      if (!loggedInUser) {
+        return { redirectUrl: joinRedirect("signin") };
+      }
+      try {
+        const communityDid = await getAtmosphereCommunityDid();
+        const membership = await getMembership({
+          communityDid,
+          userDid: loggedInUser.did,
+        });
+        if (membership.isMember) {
+          return { redirectUrl: joinRedirect("already") };
+        }
+        const membershipRecord = await ensureUserMembershipRecord({
+          loggedInUser,
+          communityDid,
+        });
+        const result = await joinCommunity({
+          communityDid,
+          userDid: loggedInUser.did,
+          membershipCid: membershipRecord.cid,
+        });
+        return {
+          redirectUrl: joinRedirect(result.status === "pending" ? "pending" : "ok"),
+        };
+      } catch (err) {
+        if (err instanceof OpenSocialCommunityError) {
+          return { redirectUrl: joinRedirect(joinStatusFromError(err)) };
+        }
+        if (isPermissionError(err)) {
+          return { redirectUrl: joinRedirect("permission") };
+        }
+        console.warn("[joinAtmosphereCommunity] unexpected error", err);
+        return { redirectUrl: joinRedirect("error") };
+      }
+    },
+  }),
+
+  leaveAtmosphereCommunity: defineAction({
+    accept: "form",
+    handler: async (_input, ctx) => {
+      const loggedInUser = ctx.locals.loggedInUser;
+      if (!loggedInUser) {
+        return { redirectUrl: joinRedirect("signin") };
+      }
+      try {
+        const communityDid = await getAtmosphereCommunityDid();
+        await leaveCommunity({
+          communityDid,
+          userDid: loggedInUser.did,
+        });
+        return { redirectUrl: joinRedirect("left") };
+      } catch (err) {
+        if (err instanceof OpenSocialCommunityError) {
+          return { redirectUrl: joinRedirect(leaveStatusFromError(err)) };
+        }
+        console.warn("[leaveAtmosphereCommunity] unexpected error", err);
+        return { redirectUrl: joinRedirect("error") };
+      }
+    },
+  }),
+
   rsvpEvent: defineAction({
     accept: "form",
     input: z.object({

@@ -1,0 +1,50 @@
+{
+  "lexicon": 1,
+  "id": "community.opensocial.joinCommunity",
+  "defs": {
+    "main": {
+      "type": "procedure",
+      "description": "Join a community. For open communities, joins immediately. For admin-approved, submits a request.",
+      "input": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["communityDid", "userDid"],
+          "properties": {
+            "communityDid": { "type": "string", "format": "did" },
+            "userDid": { "type": "string", "format": "did" },
+            "membershipCid": { "type": "string" }
+          }
+        }
+      },
+      "output": {
+        "encoding": "application/json",
+        "schema": {
+          "type": "object",
+          "required": ["status", "message"],
+          "properties": {
+            "status": { "type": "string" },
+            "message": { "type": "string" },
+            "membership": {
+              "type": "ref",
+              "ref": "#membership"
+            }
+          }
+        }
+      },
+      "errors": [
+        { "name": "CommunityNotFound" },
+        { "name": "AlreadyMember" },
+        { "name": "AlreadyPending" }
+      ]
+    },
+    "membership": {
+      "type": "object",
+      "properties": {
+        "communityDid": { "type": "string", "format": "did" },
+        "memberDid": { "type": "string", "format": "did" },
+        "joinedAt": { "type": "string", "format": "datetime" }
+      }
+    }
+  }
+}
