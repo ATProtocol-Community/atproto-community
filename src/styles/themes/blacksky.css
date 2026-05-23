@@ -1,0 +1,65 @@
+/* ============================================
+   Theme: blacksky
+   Mood: deep indigo dark mode — ported from atmosphereconf
+
+   Applied via <html data-theme="blacksky">.
+
+   See tokens.base.css for the rules every theme follows.
+   ============================================ */
+
+:root[data-theme="blacksky"] {
+  /* --- Base tokens (required) ---
+     Surfaces step UP in lightness with elevation in dark themes:
+     base-100 (page bg) is darkest, base-200 (cards/muted) is lighter,
+     base-300 (borders/raised) lighter still. */
+  --color-base-100: #0f1729;
+  --color-base-200: #182040;
+  --color-base-300: #232c54;
+  --color-base-content: #e8eaf0;
+
+  /* Brand: indigo accent from atmosphereconf */
+  --color-primary: #6b7bf5;
+  --color-primary-content: #e8eaf0;
+
+  --color-secondary: #252b3f;
+  --color-secondary-content: #e8eaf0;
+
+  --color-accent: #182040;
+  --color-accent-content: #e8eaf0;
+
+  --color-neutral: #a8adc0;
+  --color-neutral-content: #0f1729;
+
+  /* Status — dark-mode tuned (lower chroma, lifted lightness) */
+  --color-info: #6b7bf5;
+  --color-info-content: #e8eaf0;
+
+  --color-success: #48c878;
+  --color-success-content: #0f1729;
+
+  --color-warning: #f5c060;
+  --color-warning-content: #1a1408;
+
+  --color-error: #f56b6b;
+  --color-error-content: #1a0808;
+
+  /* --- Component overrides --- */
+
+  /* Header sits darker than the page bg */
+  --header-bg: #0a0e1a;
+  --header-border: rgba(255, 255, 255, 0.1);
+  --header-fg-muted: rgba(232, 234, 240, 0.6);
+  --header-link-hover-bg: rgba(255, 255, 255, 0.08);
+
+  /* Cards: subtle lift on a dark page */
+  --card-border: rgba(255, 255, 255, 0.08);
+  --card-border-hover: color-mix(
+    in oklch,
+    var(--primary) 50%,
+    var(--background)
+  );
+
+  /* Footer: lifted from page bg */
+  --footer-bg: var(--color-base-200);
+  --footer-border: rgba(255, 255, 255, 0.08);
+}

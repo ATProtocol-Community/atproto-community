@@ -1,0 +1,142 @@
+/* ============================================
+   Theme: <name>
+   Mood: <one-line vibe — what's the feel?>
+   Source: <link to inspiration / brand guide / aesthetic ref>
+
+   Applied via <html data-theme="<name>">.
+
+   ⚠ READ THE README FIRST — see the "Contributing a theme"
+   section in /README.md for the full process, layering rules,
+   contrast requirements, and gotchas.
+
+   Quick recap (don't skip step 3 — your theme won't load
+   anywhere without registering it):
+     1. Copy this file → src/styles/themes/<name>.css
+     2. Replace every REPLACE_ME with your theme id
+     3. REGISTER:
+        a. Add `@import "./themes/<name>.css";` to tokens.base.css
+        b. Add an entry to `themes` in src/lib/themes.ts
+     4. Run `npm run dev` and cycle to it via the header toggle.
+   ============================================ */
+
+:root[data-theme="REPLACE_ME"] {
+  /* ============================================================
+     1. BASE TOKENS — required.
+     Plain colors only (hex / rgb / oklch). No var() chains.
+     ============================================================ */
+
+  /* Surface ramp + paired content.
+     Light themes: 100 = page bg, ramps up to darker shades.
+     Dark themes:  100 = page bg (darkest), ramps UP in lightness
+                   with elevation (cards/borders are lighter). */
+  --color-base-100: #ffffff;
+  --color-base-200: #f4f4f5;
+  --color-base-300: #e4e4e7;
+  --color-base-content: #1a1a1a;
+
+  /* Brand pairs — every `*-content` MUST hit ≥4.5:1
+     contrast on its paired surface. */
+  --color-primary: #5b6cff;
+  --color-primary-content: #ffffff;
+
+  --color-secondary: #8b5cf6;
+  --color-secondary-content: #ffffff;
+
+  --color-accent: #f59e0b;
+  --color-accent-content: #1a1a1a;
+
+  --color-neutral: #52525b;
+  --color-neutral-content: #ffffff;
+
+  /* Status pairs */
+  --color-info: #3b82f6;
+  --color-info-content: #ffffff;
+
+  --color-success: #16a34a;
+  --color-success-content: #ffffff;
+
+  --color-warning: #f59e0b;
+  --color-warning-content: #1a1a1a;
+
+  --color-error: #dc2626;
+  --color-error-content: #ffffff;
+
+  /* ============================================================
+     2. COMPONENT OVERRIDES — optional.
+     Each line below overrides a default from tokens.components.css.
+     Delete the ones you don't change. Add as needed.
+     ============================================================ */
+
+  /* --- Badges --- */
+  /* --badge-tag-bg: var(--primary-muted); */
+  /* --badge-tag-fg: var(--primary-muted-foreground); */
+  /* --badge-online-bg: var(--primary-muted); */
+  /* --badge-online-fg: var(--primary-muted-foreground); */
+  /* --badge-location-bg: var(--success-muted); */
+  /* --badge-location-fg: var(--success-muted-foreground); */
+
+  /* --- Buttons --- */
+  /* --btn-primary-bg: var(--primary); */
+  /* --btn-primary-bg-hover: var(--primary-hover); */
+  /* --btn-primary-fg: var(--primary-foreground); */
+  /* --btn-ghost-border: var(--border); */
+  /* --btn-ghost-bg-hover: var(--primary-muted); */
+  /* --btn-ghost-border-hover: color-mix(in oklch, var(--primary) 25%, var(--background)); */
+
+  /* --- Card --- */
+  /* --card-border: var(--border); */
+  /* --card-border-hover: color-mix(in oklch, var(--primary) 35%, var(--background)); */
+
+  /* --- Header --- */
+  /* --header-bg: var(--card); */
+  /* --header-border: var(--border); */
+  /* --header-fg: var(--foreground); */
+  /* --header-fg-muted: var(--foreground-muted); */
+  /* --header-link: var(--primary); */
+  /* --header-link-hover-bg: color-mix(in oklch, var(--primary) 25%, var(--background)); */
+  /* --header-link-inactive: color-mix(in oklch, var(--primary) 50%, var(--background)); */
+
+  /* --- Footer --- */
+  /* --footer-bg: var(--muted); */
+  /* --footer-border: var(--border); */
+  /* --footer-fg-muted: var(--foreground-muted); */
+
+  /* --- Separator (e.g. dot between meta items) --- */
+  /* --separator-fg: var(--foreground-subtle); */
+}
+
+/* ============================================================
+   3. THEME-SCOPED RAW CSS — optional, last resort.
+   For patterns that can't be expressed via tokens — body
+   overlays, decorative pseudo-elements, glass blur effects.
+   Always scope to :root[data-theme="<name>"] so other themes
+   are unaffected.
+   ============================================================ */
+
+/* Example: full-page gradient + faint grid overlay
+   (uncomment and adapt)
+:root[data-theme="REPLACE_ME"] body {
+  background: linear-gradient(180deg, #abc 0%, #fed 100%);
+  background-attachment: fixed;
+  position: relative;
+  isolation: isolate;
+}
+
+:root[data-theme="REPLACE_ME"] body::before {
+  content: "";
+  position: fixed;
+  inset: 0;
+  background-image:
+    linear-gradient(to right, white 1px, transparent 1px),
+    linear-gradient(to bottom, white 1px, transparent 1px);
+  background-size: 28px 28px;
+  opacity: 0.08;
+  pointer-events: none;
+  z-index: 0;
+}
+
+:root[data-theme="REPLACE_ME"] body > *:not(.skip-link) {
+  position: relative;
+  z-index: 1;
+}
+*/

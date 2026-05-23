@@ -16,6 +16,7 @@
     "@astrojs/check": "^0.9.8",
     "@astrojs/node": "^10.0.5",
     "@atproto/api": "^0.17.3",
+    "@atproto/common-web": "^0.4.21",
     "@atproto/identity": "^0.4.8",
     "@atproto/lex": "^0.1.0",
     "@atproto/syntax": "^0.4.3",

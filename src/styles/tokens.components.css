@@ -21,16 +21,16 @@
   --btn-primary-bg-hover: var(--primary-hover);
 
   --btn-ghost-bg-hover: var(--primary-muted);
-  --btn-ghost-border: var(--border);
+  --btn-ghost-border: var(--border-color);
   --btn-ghost-border-hover: color-mix(in oklch, var(--primary) 25%, var(--background));
 
   /* Card */
-  --card-border: var(--border);
+  --card-border: var(--border-color);
   --card-border-hover: color-mix(in oklch, var(--primary) 35%, var(--background));
 
   /* Header */
   --header-bg: var(--card);
-  --header-border: var(--border);
+  --header-border: var(--border-color);
   --header-fg: var(--foreground);
   --header-fg-muted: var(--foreground-muted);
   --header-link: var(--primary);
@@ -39,7 +39,7 @@
 
   /* Footer */
   --footer-bg: var(--muted);
-  --footer-border: var(--border);
+  --footer-border: var(--border-color);
   --footer-fg-muted: var(--foreground-muted);
 
   /* Subtle separator (e.g. dot between meta items) */

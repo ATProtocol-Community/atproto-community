@@ -1,5 +1,6 @@
 ---
 import AuthMenu from '../auth/AuthMenu.astro';
+import ThemeSwitcher from '../ThemeSwitcher.astro';
 
 const navLinks = [
   { href: '/', label: 'Home' },
@@ -42,6 +43,9 @@ const isActive = (href: string) =>
           </a>
         </li>
       ))}
+      <li class="nav-theme">
+        <ThemeSwitcher />
+      </li>
     </ul>
 
     <AuthMenu />

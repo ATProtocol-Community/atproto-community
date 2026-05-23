@@ -444,7 +444,7 @@ const hintId = `${id}-hint`;
     z-index: var(--z-popover-raised);
     padding: 4px;
     background: var(--card);
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     box-shadow: var(--elevation-high);
     overflow: hidden;
@@ -498,7 +498,7 @@ const hintId = `${id}-hint`;
     overflow-y: auto;
     overscroll-behavior: contain;
     scrollbar-width: thin;
-    scrollbar-color: var(--border) transparent;
+    scrollbar-color: var(--border-color) transparent;
   }
 
   .cmb-listbox::-webkit-scrollbar {
@@ -508,7 +508,7 @@ const hintId = `${id}-hint`;
     background: transparent;
   }
   .cmb-listbox::-webkit-scrollbar-thumb {
-    background: var(--border);
+    background: var(--border-color);
     border-radius: 999px;
     border: 3px solid var(--card);
   }

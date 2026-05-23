@@ -3,17 +3,23 @@ interface Props {
   title: string;
   description?: string;
   ogImage?: string;
+  defaultTheme?: string;
 }
 
 const {
   title,
   description = 'The community hub for apps and people building on AT Protocol',
   ogImage,
+  defaultTheme,
 } = Astro.props;
 
 const canonicalURL = new URL(Astro.url.pathname, Astro.site);
 
 import '../styles/global.css';
+import { themes, defaultThemeId, storageKey } from '../lib/themes';
+
+const themeIds = themes.map(t => t.id);
+const initialTheme = defaultTheme ?? null;
 ---
 
 <!doctype html>
@@ -22,6 +28,39 @@ import '../styles/global.css';
     <meta charset="utf-8" />
     <meta name="viewport" content="width=device-width, initial-scale=1" />
     <meta name="generator" content={Astro.generator} />
+
+    {/*
+      Theme resolution (pre-paint, no FOUC):
+        1. localStorage — anonymous-user preference
+        2. initialTheme — page-level prop (e.g. profile owner's theme)
+        3. defaultThemeId — fallback (no data-theme attribute set)
+
+      TODO: once login lands, fetch the logged-in user's theme
+      preference from their PDS and inject it as a third tier above
+      localStorage (server-rendered into `initialTheme` so the
+      first paint matches what the user picked on another device).
+    */}
+    <script
+      is:inline
+      define:vars={{ themeIds, initialTheme, defaultThemeId, storageKey }}
+    >
+      (function () {
+        try {
+          var stored = localStorage.getItem(storageKey);
+          var pick = null;
+          if (stored && themeIds.indexOf(stored) !== -1) {
+            pick = stored;
+          } else if (initialTheme && themeIds.indexOf(initialTheme) !== -1) {
+            pick = initialTheme;
+          }
+          if (pick && pick !== defaultThemeId) {
+            document.documentElement.setAttribute('data-theme', pick);
+          }
+        } catch (e) {
+          /* storage unavailable — fall back to default */
+        }
+      })();
+    </script>
 
     <title>{title} — atmosphere.community</title>
     <meta name="description" content={description} />

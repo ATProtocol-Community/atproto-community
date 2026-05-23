@@ -276,7 +276,7 @@ const avatarInitial = (displayName || "@").charAt(0).toUpperCase();
     align-items: center;
     gap: var(--space-sm);
     min-height: 36px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-pill);
     padding: 2px var(--space-md) 2px 2px;
     color: var(--foreground);
@@ -354,7 +354,7 @@ const avatarInitial = (displayName || "@").charAt(0).toUpperCase();
     width: min(280px, calc(100vw - 2 * var(--space-lg)));
     padding: var(--space-base);
     background: var(--card);
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-md);
     box-shadow: var(--elevation-high);
   }
@@ -404,7 +404,7 @@ const avatarInitial = (displayName || "@").charAt(0).toUpperCase();
   :global(.auth-input) {
     width: 100%;
     min-height: 40px;
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-color);
     border-radius: var(--radius-sm);
     padding: var(--space-sm) var(--space-md);
     color: var(--foreground);
@@ -458,18 +458,18 @@ const avatarInitial = (displayName || "@").charAt(0).toUpperCase();
   }
 
   .auth-button:disabled {
-    background: var(--border);
+    background: var(--border-color);
     color: var(--foreground-muted);
     cursor: not-allowed;
   }
   .auth-button:disabled:hover {
-    background: var(--border);
+    background: var(--border-color);
   }
 
   .auth-button--secondary {
     width: 100%;
     background: transparent;
-    border: 1px solid var(--border);
+    border: 1px solid var(--border-color);
     color: var(--primary);
   }
 

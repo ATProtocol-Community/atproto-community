@@ -44,7 +44,7 @@
   );
 
   /* Borders / interactive */
-  --border: var(--color-base-300);
+  --border-color: var(--color-base-300);
   --input: var(--color-base-300);
   --ring: var(--color-primary);
 
@@ -56,6 +56,7 @@
     0 1px 2px color-mix(in oklch, var(--elevation-color) 5%, transparent),
     0 8px 16px color-mix(in oklch, var(--elevation-color) 8%, transparent),
     0 24px 48px color-mix(in oklch, var(--elevation-color) 16%, transparent);
+
 
   /* Brand */
   --primary: var(--color-primary);
