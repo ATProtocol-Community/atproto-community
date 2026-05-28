@@ -151,3 +151,10 @@
   region: North America — Canada
   description: Vancouver ATProtocol user group
   bluesky: https://bsky.app/profile/vancouver.atprotocol.community
+
+- name: ATProto.com Global
+  handle: atproto.com
+  location: Seattle, WA
+  region: North America - USA
+  description: The Bluesky team behind ATProto.com
+  bluesky: https://bsky.app/profile/atproto.com
