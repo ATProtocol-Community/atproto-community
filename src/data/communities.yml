@@ -154,7 +154,7 @@
 
 - name: ATProto.com Global
   handle: atproto.com
-  location: Seattle, WA
-  region: North America - USA
+  location: Online
+  region: Online
   description: The Bluesky team behind ATProto.com
   bluesky: https://bsky.app/profile/atproto.com
