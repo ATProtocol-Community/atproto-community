@@ -33,6 +33,13 @@
   description: Boston ATProtocol user group
   bluesky: https://bsky.app/profile/atproto.boston
 
+- name: ATProto Chicago
+  handle: chicago.at
+  location: Chicago, IL
+  region: North America — USA
+  description: Chicago ATProtocol user group
+  bluesky: https://bsky.app/profile/chicago.at
+
 - name: ATProto Colorado
   handle: colorado.atprotocol.space
   location: Colorado, US
