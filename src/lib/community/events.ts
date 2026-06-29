@@ -41,6 +41,7 @@ export function normalizeEventMode(value: unknown): CommunityEvent['mode'] {
   // last `#` so both forms collapse to the bare token.
   const raw = String(value ?? '');
   const s = raw.includes('#') ? raw.slice(raw.lastIndexOf('#') + 1) : raw;
+  if (s === 'in-person') return 'inperson';
   if (s === 'inperson' || s === 'virtual' || s === 'hybrid') return s;
   return 'virtual';
 }

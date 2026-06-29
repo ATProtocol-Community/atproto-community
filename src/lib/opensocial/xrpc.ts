@@ -1,9 +1,10 @@
-// Minimum signed Lexicon client. Server-only: this wraps @atproto/lex's Client
-// with the CIMD HTTP Message Signature fetch hook.
+// Minimum signed Lexicon client. Server-only: this configures the generic
+// signed-service transport with this app's CIMD HTTP Message Signature signer.
 
 import { Client } from "@atproto/lex";
+import { createSignedServiceAgent } from "@fujocoded/atproto-lex-client/signed-service";
 
-import { signRequest } from "./keys.js";
+import { signRequest } from "../cmid-signing/index.js";
 
 export function createSignedLexClient(opts: {
   /** Service origin for XRPC calls, for example `https://api.example.com`. */
@@ -16,37 +17,20 @@ export function createSignedLexClient(opts: {
   validateResponse?: boolean;
 }): Client {
   return new Client(
+    createSignedServiceAgent({
+      serviceUrl: opts.service,
+      fetch: opts.fetchImpl,
+      signRequest(request) {
+        return signRequest({
+          method: request.method,
+          url: request.url,
+          body: request.body,
+          appId: opts.appId,
+        });
+      },
+    }),
     {
-      service: opts.service,
-      fetch: createSignedFetch(opts.appId, opts.fetchImpl ?? fetch),
+      validateResponse: opts.validateResponse ?? false,
     },
-    { validateResponse: opts.validateResponse ?? false },
-  );
-}
-
-function createSignedFetch(appId: string, fetchImpl: typeof fetch): typeof fetch {
-  return async (input, init) => {
-    const url = input instanceof Request ? input.url : input.toString();
-    const method = (
-      init?.method ??
-      (input instanceof Request ? input.method : "GET")
-    ).toUpperCase();
-    const body = bodyToString(init?.body);
-    const headers = new Headers(init?.headers);
-    const signed = signRequest({ method, url, body, appId });
-
-    for (const [key, value] of Object.entries(signed)) {
-      if (value) headers.set(key, value);
-    }
-
-    return fetchImpl(input, { ...init, headers });
-  };
-}
-
-function bodyToString(body: BodyInit | null | undefined): string | null {
-  if (body === undefined || body === null) return null;
-  if (typeof body === "string") return body;
-  throw new TypeError(
-    "Signed Lexicon requests require string bodies before signing",
   );
 }

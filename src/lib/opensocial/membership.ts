@@ -21,8 +21,19 @@ type JoinCommunityOutput = joinCommunityMethod.$defs.$OutputBody;
 interface MembershipState {
   /** True when the user has any role in the community (member, admin, ...). */
   isMember: boolean;
+  /** True when one of the user's roles is an admin role. Admins can't leave. */
+  isAdmin: boolean;
   /** Raw roles returned by the appview, useful for admin/moderator UI. */
   roles: string[];
+}
+
+// getPermissions.userRoles is an unconstrained string array in the lexicon, but
+// the appview is a single implementation with an app-wide vocabulary: probing the
+// live communities returns lowercase "member"/"admin" (verified June 2026 against
+// atmosphere.community and colorado.atprotocol.space). Matched case-insensitively
+// as a hedge against future casing or roles like "super-admin".
+function rolesIncludeAdmin(roles: string[]): boolean {
+  return roles.some((role) => role.toLowerCase().includes("admin"));
 }
 
 interface StrongRef {
@@ -119,7 +130,7 @@ export async function getMembership(input: {
     }),
   );
   const roles = res.body.userRoles;
-  return { isMember: roles.length > 0, roles };
+  return { isMember: roles.length > 0, isAdmin: rolesIncludeAdmin(roles), roles };
 }
 
 export async function joinCommunity(

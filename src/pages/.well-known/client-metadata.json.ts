@@ -1,8 +1,6 @@
 import type { APIRoute } from "astro";
 
-import { getPublicJwk } from "../../lib/opensocial/keys";
-
-export const prerender = false;
+import { getPublicJwk } from "../../lib/cmid-signing/index.js";
 
 const CLIENT_ID =
   "https://atmosphere.community/.well-known/client-metadata.json";

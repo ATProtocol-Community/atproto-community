@@ -5,6 +5,7 @@ export {
   hydrateBlogPost,
   parseSharedDocumentRef,
   parseSharedEventRef,
+  classifySharedContent,
   hydrateSharedDocument,
   hydrateSharedEvent,
 } from './shared-content.js';
@@ -17,6 +18,7 @@ export type {
 } from './types.js';
 export type {
   BlogPostRef,
+  SharedContentKind,
   SharedDocumentRef,
   SharedEventRef,
   HydrateDocumentDeps,

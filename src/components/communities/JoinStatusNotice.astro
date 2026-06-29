@@ -1,0 +1,48 @@
+---
+import {
+  getJoinStatusCopy,
+  type JoinStatusCode,
+} from "../../lib/community/join-status";
+
+interface Props {
+  status?: JoinStatusCode | string | null;
+  communityName?: string | null;
+}
+
+const { status, communityName } = Astro.props;
+const notice = getJoinStatusCopy(status);
+
+if (!notice) {
+  return;
+}
+---
+
+<p class={`join-status join-status--${notice.tone}`} role="status">
+  {communityName ? `${communityName}: ` : ""}
+  {notice.message}
+</p>
+
+<style>
+  .join-status {
+    margin-top: var(--space-base);
+    padding: var(--space-md) var(--space-lg);
+    border-radius: var(--radius-md);
+    font-size: var(--text-sm);
+    line-height: var(--leading-normal);
+  }
+
+  .join-status--success {
+    background: var(--success-muted, var(--primary-muted));
+    color: var(--success, var(--primary));
+  }
+
+  .join-status--info {
+    background: var(--muted);
+    color: var(--foreground-secondary);
+  }
+
+  .join-status--error {
+    background: var(--error-muted, var(--muted));
+    color: var(--error, var(--foreground));
+  }
+</style>

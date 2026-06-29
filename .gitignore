@@ -3,6 +3,10 @@ dist/
 # generated types
 .astro/
 
+# local auth/session data
+.astro-session-dev/
+.authproto-dev/
+
 # dependencies
 node_modules/
 

@@ -8,6 +8,18 @@ import { toString as mdastToString } from 'mdast-util-to-string';
 import { AtUri } from '@atproto/api';
 import { DidResolver, MemoryCache, getPds } from '@atproto/identity';
 import type { CommunityEvent } from './community/types.js';
+import {
+  getProfile,
+  hydrateBlogPost,
+  hydrateSharedDocument,
+  hydrateSharedEvent,
+  parseBlogPostRef,
+  parseEventRecord,
+  parseSharedDocumentRef,
+  parseSharedEventRef,
+  classifySharedContent,
+} from './community/index.js';
+import type { SharedEventRef } from './community/index.js';
 
 const cidDidCache = new MemoryCache();
 const cidDidResolver = new DidResolver({ didCache: cidDidCache });
@@ -31,16 +43,6 @@ async function fetchCanonicalCid(atUri: string): Promise<string | undefined> {
     return undefined;
   }
 }
-import {
-  getProfile,
-  hydrateBlogPost,
-  hydrateSharedDocument,
-  hydrateSharedEvent,
-  parseBlogPostRef,
-  parseEventRecord,
-  parseSharedDocumentRef,
-  parseSharedEventRef,
-} from './community/index.js';
 
 const OFFPRINT_PUB =
   'at://did:plc:lehcqqkwzcwvjvw66uthu5oq/site.standard.publication/3mjnpilwnrp2v';
@@ -146,6 +148,10 @@ export type RawFeedEntry = Omit<FeedEntry, 'author'> & {
 };
 
 export type LoaderArgs = AtProtoRecordCallbackArgs;
+type SharedEventLoaderArgs = LoaderArgs & {
+  collection: 'community.opensocial.sharedContent';
+  value: SharedEventRef;
+};
 
 type FilterFn = (ctx: LoaderArgs) => boolean;
 type TransformFn<Entry> = (
@@ -227,13 +233,44 @@ export const eventFilters: Record<string, FilterFn> = {
       rkey: ctx.rkey,
       source: sourceLabel(ctx),
     }),
-  'community.opensocial.sharedContent': (ctx) => {
-    const ref = parseSharedEventRef(ctx.value as Record<string, unknown>, {
-      source: sourceLabel(ctx),
-    });
-    return !!ref && ref.documentUri.startsWith('at://');
-  },
+  // sharedContent holds both event shares and document shares. parseSharedEventRecord
+  // turns event shares into SharedEventRef and passes everything else through unchanged;
+  // here we keep only the parsed event shares so document shares are dropped quietly.
+  'community.opensocial.sharedContent': (ctx) => isSharedEventLoaderArgs(ctx),
 };
+
+// parseRecord for the events collection's sharedContent source. The collection mixes
+// event shares with document shares, so a non-event record is *expected*: return it
+// unchanged and let the events filter drop it quietly (no loader warning). A record that
+// claims to be an event share but is malformed is a real problem, so still throw —
+// that surfaces the loader's parseRecord warning for genuine data errors.
+export function parseSharedEventRecord(
+  value: unknown,
+  source: string,
+): SharedEventRef | unknown {
+  // Document shares (and any unknown type) belong to the feed, not the events list —
+  // drop them via the filter rather than the warning path.
+  if (classifySharedContent(value) !== 'event') return value;
+  const record = value as Record<string, unknown>;
+
+  const ref = parseSharedEventRef(record, { source });
+  if (!ref) throw new TypeError('shared event record is malformed');
+  if (!ref.documentUri.startsWith('at://')) {
+    throw new TypeError('shared event must point at an AT URI');
+  }
+  return ref;
+}
+
+function isSharedEventLoaderArgs(ctx: LoaderArgs): ctx is SharedEventLoaderArgs {
+  return (
+    ctx.collection === 'community.opensocial.sharedContent' &&
+    typeof ctx.value === 'object' &&
+    ctx.value !== null &&
+    'documentUri' in ctx.value &&
+    'sharedAt' in ctx.value &&
+    'source' in ctx.value
+  );
+}
 
 // Group key for event records: collapse a native calendar event and any reshares
 // of it onto the same canonical at-URI. Reshares carry the host's URI in their
@@ -241,12 +278,7 @@ export const eventFilters: Record<string, FilterFn> = {
 // to its own URI so it still produces a usable single-record group.
 export function eventGroupKey(ctx: LoaderArgs): string {
   if (ctx.collection === 'community.lexicon.calendar.event') return ctx.uri;
-  if (ctx.collection === 'community.opensocial.sharedContent') {
-    const ref = parseSharedEventRef(ctx.value as Record<string, unknown>, {
-      source: '',
-    });
-    return ref?.documentUri ?? ctx.uri;
-  }
+  if (isSharedEventLoaderArgs(ctx)) return ctx.value.documentUri;
   return ctx.uri;
 }
 
@@ -261,9 +293,7 @@ export async function transformEventGroup(args: {
   const native = args.records.find(
     (r) => r.collection === 'community.lexicon.calendar.event',
   );
-  const reshares = args.records.filter(
-    (r) => r.collection === 'community.opensocial.sharedContent',
-  );
+  const reshares = args.records.filter(isSharedEventLoaderArgs);
 
   let event: CommunityEvent | null = null;
   let cid: string | undefined;
@@ -277,10 +307,7 @@ export async function transformEventGroup(args: {
     cid = native.cid;
   } else {
     for (const reshare of reshares) {
-      const ref = parseSharedEventRef(reshare.value as Record<string, unknown>, {
-        source: sourceLabel(reshare),
-      });
-      if (!ref) continue;
+      const ref = reshare.value;
       event = await hydrateSharedEvent(ref, {
         fetchRecord: async (atUri: string) => {
           const result = await args.fetchRecord({ atUri });

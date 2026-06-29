@@ -99,11 +99,26 @@ export interface HydrateEventDeps {
   fetchRecord: FetchRecordValue;
 }
 
+// Single source of truth for what `community.opensocial.sharedContent` types exist and
+// how they route: documents → feed, events → events list. Anything else is `'unknown'`
+// and is dropped by both collections — the one place to extend when a new type appears.
+export type SharedContentKind = 'event' | 'document' | 'unknown';
+
+export function classifySharedContent(value: unknown): SharedContentKind {
+  const type =
+    typeof value === 'object' && value !== null
+      ? (value as { type?: unknown }).type
+      : undefined;
+  if (type === 'event') return 'event';
+  if (type === 'document') return 'document';
+  return 'unknown';
+}
+
 export function parseSharedDocumentRef(
   value: Record<string, unknown>,
   ctx: { source: string },
 ): SharedDocumentRef | null {
-  if (value.type !== 'document') return null;
+  if (classifySharedContent(value) !== 'document') return null;
 
   const documentUri = asNonEmptyString(value.documentUri);
   if (!documentUri) return null;
@@ -124,7 +139,7 @@ export function parseSharedEventRef(
   value: Record<string, unknown>,
   ctx: { source: string },
 ): SharedEventRef | null {
-  if (value.type !== 'event') return null;
+  if (classifySharedContent(value) !== 'event') return null;
 
   const documentUri = asNonEmptyString(value.documentUri);
   if (!documentUri) return null;

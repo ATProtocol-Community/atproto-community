@@ -2,16 +2,33 @@
 import { getBlueskyAgent } from "@fujocoded/authproto/helpers";
 import Combobox from "./Combobox.astro";
 import AtprotoIcon from "./icons/AtprotoIcon.astro";
+import { getAtmosphereCommunityDid } from "../../lib/community/atmosphere";
+import { getMembership } from "../../lib/opensocial/membership";
 
 const PROFILE_TTL_MS = 60_000;
 type CachedProfile = {
   expiresAt: number;
   avatar?: string;
   displayName?: string;
+  // Admin of this site's own (Atmosphere) community. The dropdown is global, so
+  // "admin" here means admin of atmosphere.community, not of any community.
+  isAdmin: boolean;
 };
 const profileCache: Map<string, CachedProfile> =
   (globalThis as any).__authMenuProfileCache ??
   ((globalThis as any).__authMenuProfileCache = new Map());
+
+async function loadAdminStatus(did: string): Promise<boolean> {
+  try {
+    const communityDid = await getAtmosphereCommunityDid();
+    const membership = await getMembership({ communityDid, userDid: did });
+    return membership.isAdmin;
+  } catch (err) {
+    // A degraded appview shouldn't break the header; just hide the badge.
+    console.warn("[AuthMenu] failed to load admin status", did, err);
+    return false;
+  }
+}
 
 async function loadProfile(did: string): Promise<CachedProfile | null> {
   const now = Date.now();
@@ -19,11 +36,15 @@ async function loadProfile(did: string): Promise<CachedProfile | null> {
   if (cached && cached.expiresAt > now) return cached;
   try {
     const agent = await getBlueskyAgent();
-    const profile = await agent?.app.bsky.actor.getProfile({ actor: did });
+    const [profile, isAdmin] = await Promise.all([
+      agent?.app.bsky.actor.getProfile({ actor: did }),
+      loadAdminStatus(did),
+    ]);
     const entry: CachedProfile = {
       expiresAt: now + PROFILE_TTL_MS,
       avatar: profile?.data.avatar,
       displayName: profile?.data.displayName,
+      isAdmin,
     };
     profileCache.set(did, entry);
     return entry;
@@ -42,6 +63,7 @@ const authError =
 const profile = loggedInUser ? await loadProfile(loggedInUser.did) : null;
 const displayName = profile?.displayName?.trim() || loggedInUser?.handle || "";
 const avatarUrl = profile?.avatar;
+const isAdmin = profile?.isAdmin ?? false;
 const avatarInitial = (displayName || "@").charAt(0).toUpperCase();
 ---
 
@@ -73,6 +95,7 @@ const avatarInitial = (displayName || "@").charAt(0).toUpperCase();
         <div class="auth-popover">
           <p class="auth-status">
             Signed in as <strong>@{loggedInUser.handle}</strong>
+            {isAdmin && <span class="auth-admin-badge">Admin</span>}
           </p>
           <form class="auth-form" action="/oauth/logout" method="post">
             <button class="auth-button auth-button--secondary" type="submit">
@@ -482,6 +505,19 @@ const avatarInitial = (displayName || "@").charAt(0).toUpperCase();
     color: var(--foreground-secondary);
     font-size: var(--text-sm);
     line-height: var(--leading-normal);
+  }
+
+  .auth-admin-badge {
+    display: inline-block;
+    margin-left: var(--space-sm);
+    padding: 1px var(--space-sm);
+    border-radius: var(--radius-pill);
+    background: var(--primary-muted);
+    color: var(--primary);
+    font-size: var(--text-xs);
+    font-weight: 700;
+    line-height: 1.4;
+    vertical-align: middle;
   }
 
   .auth-error {

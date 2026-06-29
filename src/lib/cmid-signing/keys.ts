@@ -8,14 +8,6 @@ import {
 
 const DEFAULT_KID = "opensocial-cimd-1";
 
-/** Truthy when the configured value exists and is non-empty. */
-export function hasPrivateKey(): boolean {
-  return (
-    !!import.meta.env.OPENSOCIAL_CIMD_PRIVATE_KEY_BASE64 ||
-    !!import.meta.env.OPENSOCIAL_CIMD_PRIVATE_KEY_PEM
-  );
-}
-
 function loadPrivatePem(): string {
   const b64 = import.meta.env.OPENSOCIAL_CIMD_PRIVATE_KEY_BASE64;
   if (b64 && b64.length > 0) {
@@ -60,16 +52,6 @@ export function getPublicJwk() {
   return cachedPublicJwk;
 }
 
-/**
- * The registered open-social app id, used as the `keyid` parameter in HTTP
- * Message Signatures so the server can resolve our CIMD document. Distinct
- * from `kid`: kid identifies which key inside our JWKS; appId identifies us.
- */
-export function getAppId(): string | null {
-  const id = import.meta.env.OPENSOCIAL_APP_ID;
-  return id && id.length > 0 ? id : null;
-}
-
 export function signRequest(opts: {
   method: string;
   url: string;
@@ -112,6 +94,6 @@ export function signRequest(opts: {
   return {
     "Signature-Input": `sig1=${signatureParams}`,
     Signature: `sig1=:${signature.toString("base64")}:`,
-    "Content-Digest": digestValue,
+    ...(digestValue ? { "Content-Digest": digestValue } : {}),
   };
 }

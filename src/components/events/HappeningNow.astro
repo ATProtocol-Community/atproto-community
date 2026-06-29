@@ -66,12 +66,7 @@ const startTimeFmt = new Intl.DateTimeFormat("en-US", {
       <div class="now-content">
         <header class="now-header">
           <h2 id="now-heading" class="now-header__title">
-            {groups.now.length > 0 && (
-              <span class="now-pulse" aria-hidden="true">
-                <span class="now-pulse__dot" />
-                <span class="now-pulse__ring" />
-              </span>
-            )}
+            <div class="logo-cloud" />
             <span>At a glance</span>
           </h2>
           <p class="now-header__sub">Live and upcoming community events.</p>
@@ -89,35 +84,35 @@ const startTimeFmt = new Intl.DateTimeFormat("en-US", {
               </h3>
               <div class="now-cards" data-now-cards>
                 {section.items.map((item, itemIndex) => {
-                    const status = item.isLive ? "live" : "soon";
-                    const relative = item.isLive
-                      ? formatTimeLeft(item.endsAt.getTime() - nowMs)
-                      : formatStartsIn(item.startsAt.getTime() - nowMs);
-                    const startIso = item.startsAt.toISOString();
-                    const endIso = item.endsAt.toISOString();
-                    return (
-                      <a
-                        class:list={["now-card", `now-card--${status}`]}
-                        href={`#${eventAnchorId(item.event.atUri)}`}
-                        style={`--stagger:${sectionIndex + itemIndex}`}
-                        data-event-starts-at={startIso}
-                        data-event-ends-at={endIso}
-                      >
-                        <div class="now-card__head">
-                          <span class="now-card__status">
-                            <span
-                              class="now-card__live-dot"
-                              aria-hidden="true"
-                              data-status-live-icon
-                              hidden={!item.isLive}
-                            />
+                  const status = item.isLive ? "live" : "soon";
+                  const relative = item.isLive
+                    ? formatTimeLeft(item.endsAt.getTime() - nowMs)
+                    : formatStartsIn(item.startsAt.getTime() - nowMs);
+                  const startIso = item.startsAt.toISOString();
+                  const endIso = item.endsAt.toISOString();
+                  return (
+                    <a
+                      class:list={["now-card", `now-card--${status}`]}
+                      href={`#${eventAnchorId(item.event.atUri)}`}
+                      style={`--stagger:${sectionIndex + itemIndex}`}
+                      data-event-starts-at={startIso}
+                      data-event-ends-at={endIso}
+                    >
+                      <div class="now-card__head">
+                        <span class="now-card__status">
+                          <span
+                            class="now-card__live-dot"
+                            aria-hidden="true"
+                            data-status-live-icon
+                            hidden={!item.isLive}
+                          />
+                          {!item.isLive && (
                             <svg
                               viewBox="0 0 12 12"
                               width="11"
                               height="11"
                               aria-hidden="true"
                               data-status-soon-icon
-                              hidden={item.isLive}
                             >
                               <circle
                                 cx="6"
@@ -135,42 +130,47 @@ const startTimeFmt = new Intl.DateTimeFormat("en-US", {
                                 stroke-linecap="round"
                               />
                             </svg>
-                            <span data-status-label>{section.label}</span>
-                          </span>
-                          <span
-                            class="now-card__relative"
-                            data-relative
-                            data-relative-mode={status}
-                          >
-                            {relative}
-                          </span>
-                        </div>
-
-                        <h4 class="now-card__name">{item.event.name}</h4>
-
-                        <div class="now-card__meta">
-                          <time
-                            class="now-card__time"
-                            datetime={startIso}
-                            data-localize-time
-                          >
-                            {startTimeFmt.format(item.event.startsAt)} UTC
-                          </time>
-                          {item.event.location && (
-                            <>
-                              <span class="now-card__sep" aria-hidden="true">
-                                ·
-                              </span>
-                              <span class="now-card__loc">
-                                {item.event.location}
-                              </span>
-                            </>
                           )}
-                        </div>
-                      </a>
-                    );
-                  })}
-                <p class="now-empty" data-now-empty hidden={section.items.length > 0}>
+                          <span data-status-label>{section.label}</span>
+                        </span>
+                        <span
+                          class="now-card__relative"
+                          data-relative
+                          data-relative-mode={status}
+                        >
+                          {relative}
+                        </span>
+                      </div>
+
+                      <h4 class="now-card__name">{item.event.name}</h4>
+
+                      <div class="now-card__meta">
+                        <time
+                          class="now-card__time"
+                          datetime={startIso}
+                          data-localize-time
+                        >
+                          {startTimeFmt.format(item.event.startsAt)} UTC
+                        </time>
+                        {item.event.location && (
+                          <>
+                            <span class="now-card__sep" aria-hidden="true">
+                              ·
+                            </span>
+                            <span class="now-card__loc">
+                              {item.event.location}
+                            </span>
+                          </>
+                        )}
+                      </div>
+                    </a>
+                  );
+                })}
+                <p
+                  class="now-empty"
+                  data-now-empty
+                  hidden={section.items.length > 0}
+                >
                   {section.empty}
                 </p>
               </div>
@@ -218,22 +218,33 @@ const startTimeFmt = new Intl.DateTimeFormat("en-US", {
     max-width: 55ch;
   }
 
-  /* Pulsing indicator next to "Happening now" heading */
-  .now-pulse {
+  .logo-cloud {
+    display: block;
+    width: 22px;
+    height: 12px;
     position: relative;
-    display: inline-flex;
-    width: 8px;
-    height: 8px;
-    flex-shrink: 0;
+    background: var(--header-link-hover-bg);
+    border-radius: 12px;
   }
-  .now-pulse__dot {
+  .logo-cloud::before {
+    content: "";
     position: absolute;
-    inset: 0;
+    width: 10px;
+    height: 10px;
     border-radius: 50%;
-    background: var(--primary);
+    background: var(--header-link-hover-bg);
+    top: -5px;
+    left: 4px;
   }
-  .now-pulse__ring {
-    display: none;
+  .logo-cloud::after {
+    content: "";
+    position: absolute;
+    width: 7px;
+    height: 7px;
+    border-radius: 50%;
+    background: var(--header-link-hover-bg);
+    top: -3px;
+    left: 12px;
   }
 
   .now-groups {
@@ -472,9 +483,9 @@ const startTimeFmt = new Intl.DateTimeFormat("en-US", {
   function regroupNowStrip() {
     const now = new Date();
     const sections = new Map(
-      Array.from(document.querySelectorAll<HTMLElement>("[data-now-section]")).map(
-        (section) => [section.dataset.nowSection, section],
-      ),
+      Array.from(
+        document.querySelectorAll<HTMLElement>("[data-now-section]"),
+      ).map((section) => [section.dataset.nowSection, section]),
     );
     const buckets = {
       now: [] as HTMLElement[],

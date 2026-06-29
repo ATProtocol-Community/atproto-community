@@ -2,6 +2,7 @@ import { defineLiveCollection } from "astro:content";
 import { z } from "astro/zod";
 import { defineAtProtoLiveCollection } from "@fujocoded/astro-atproto-loader";
 import { getProfile, prefetchSourceProfiles } from "./lib/community/index.js";
+import { hasOpenSocialProfile } from "./lib/community/opensocial-profile.js";
 import yaml from "js-yaml";
 import communitiesRaw from "./data/communities.yml?raw";
 import {
@@ -11,6 +12,7 @@ import {
   feedFilters,
   feedOutputSchema,
   feedTransformers,
+  parseSharedEventRecord,
   transformEventGroup,
   type LoaderArgs,
 } from "./lib/live-handlers";
@@ -32,6 +34,9 @@ type AvatarSource =
 interface CommunityCardData
   extends CommunityDefinition, Record<string, unknown> {
   avatar: AvatarSource;
+  // Derived at load time: true when the account's repo carries a
+  // community.opensocial.profile record (i.e. runs the opensocial.community software).
+  isOpenSocialCommunity: boolean;
 }
 
 function communityAvatar(handle: string, url?: string): AvatarSource {
@@ -160,6 +165,7 @@ const events = defineAtProtoLiveCollection({
       repo,
       collection: "community.opensocial.sharedContent" as const,
       limit: 200,
+      parseRecord: (value: unknown) => parseSharedEventRecord(value, repo),
     })),
   ],
   onSourceError: "skip",
@@ -182,21 +188,32 @@ const communities = defineLiveCollection({
     name: "communities-live",
     async loadCollection() {
       // allSettled, not all: a single unreachable PDS shouldn't blank out the whole listing.
-      // Failed profile lookups simply fall back to no avatar.
-      const profileResults = await Promise.allSettled(
-        communityDefinitions.map((community) => getProfile(community.handle)),
-      );
+      // Failed profile lookups simply fall back to no avatar; a failed opensocial
+      // probe (hasOpenSocialProfile swallows its own errors) falls back to false.
+      const [profileResults, openSocialResults] = await Promise.all([
+        Promise.allSettled(
+          communityDefinitions.map((community) => getProfile(community.handle)),
+        ),
+        Promise.allSettled(
+          communityDefinitions.map((community) =>
+            hasOpenSocialProfile(community.handle),
+          ),
+        ),
+      ]);
 
       return {
         entries: communityDefinitions.map((community, index) => {
           const result = profileResults[index];
           const profileAvatar =
             result?.status === "fulfilled" ? result.value.avatar : undefined;
+          const openSocial = openSocialResults[index];
           return {
             id: community.handle,
             data: {
               ...community,
               avatar: communityAvatar(community.handle, profileAvatar),
+              isOpenSocialCommunity:
+                openSocial?.status === "fulfilled" ? openSocial.value : false,
             } satisfies CommunityCardData,
           };
         }),
@@ -210,12 +227,16 @@ const communities = defineLiveCollection({
       );
       if (!community) return undefined;
 
-      const profile = await getProfile(community.handle).catch(() => undefined);
+      const [profile, isOpenSocialCommunity] = await Promise.all([
+        getProfile(community.handle).catch(() => undefined),
+        hasOpenSocialProfile(community.handle),
+      ]);
       return {
         id: community.handle,
         data: {
           ...community,
           avatar: communityAvatar(community.handle, profile?.avatar),
+          isOpenSocialCommunity,
         } satisfies CommunityCardData,
       };
     },
@@ -228,6 +249,7 @@ const communities = defineLiveCollection({
     description: z.string().optional(),
     bluesky: z.string().optional(),
     website: z.string().optional(),
+    isOpenSocialCommunity: z.boolean(),
     avatar: z.union([
       z.object({ url: z.string() }),
       z.object({ initials: z.string(), color: z.string() }),

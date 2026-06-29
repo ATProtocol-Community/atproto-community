@@ -1,0 +1,587 @@
+---
+import type { ShareCandidate, ShareCandidateList } from '../../lib/community/share-candidates';
+import { actions } from 'astro:actions';
+
+interface Props {
+  candidates: ShareCandidateList | null;
+  repo: string;
+  error?: boolean;
+}
+
+const { candidates, repo, error = false } = Astro.props;
+const INITIAL_VISIBLE = 5;
+const LOAD_STEP = 5;
+const items = candidates
+  ? [...candidates.events, ...candidates.documents]
+      .sort((a, b) => (b.date?.getTime() ?? 0) - (a.date?.getTime() ?? 0))
+  : [];
+
+function formatDate(date: Date | undefined): string {
+  if (!date) return '';
+  return new Intl.DateTimeFormat('en-US', {
+    month: 'short',
+    day: 'numeric',
+    year: 'numeric',
+  }).format(date);
+}
+
+function previewUrl(candidate: ShareCandidate): string {
+  const parsed = parseAtUri(candidate.uri);
+  if (!parsed) return candidate.uri;
+
+  if (candidate.kind === 'event') {
+    return `https://smokesignal.events/${parsed.repo}/${parsed.rkey}`;
+  }
+  return `https://leaflet.pub/profile/${parsed.repo}/${parsed.rkey}`;
+}
+
+function typeLabel(kind: ShareCandidate['kind']): string {
+  return kind === 'event' ? 'Event' : 'Content';
+}
+
+function dateLabel(kind: ShareCandidate['kind']): string {
+  return kind === 'event' ? 'Held' : 'Published';
+}
+
+function countLabel(candidates: ShareCandidateList | null): string {
+  if (!candidates) return '';
+  const count = candidates.events.length + candidates.documents.length;
+  return `${count} found`;
+}
+
+function parseAtUri(uri: string): { repo: string; rkey: string } | null {
+  const parts = uri.replace(/^at:\/\//, '').split('/');
+  const [repo, , rkey] = parts;
+  if (!repo || !rkey) return null;
+  return { repo, rkey };
+}
+---
+
+<section class="shareable-content" aria-label="Shareable content">
+  {error ? (
+    <p class="shareable-content__notice" role="status">
+      Couldn’t load shareable records right now.
+    </p>
+  ) : items.length > 0 ? (
+    <div
+      class="shareable-content__panel"
+      data-share-picker
+      data-initial-visible={INITIAL_VISIBLE}
+      data-load-step={LOAD_STEP}
+    >
+      <div class="shareable-content__summary">
+        <span data-share-picker-count>{countLabel(candidates)}</span>
+        <span>Events and Standard Site documents</span>
+      </div>
+      <div class="shareable-content__toolbar" aria-label="Filter shareable records">
+        <button class="shareable-content__filter" type="button" data-filter="all" aria-pressed="true">
+          All
+        </button>
+        <button class="shareable-content__filter" type="button" data-filter="event" aria-pressed="false">
+          Events
+        </button>
+        <button class="shareable-content__filter" type="button" data-filter="document" aria-pressed="false">
+          Content
+        </button>
+      </div>
+      <ul class="shareable-content__list" data-share-picker-list>
+        {items.map((candidate, index) => (
+          <li class="share-row" data-share-row data-kind={candidate.kind} hidden={index >= INITIAL_VISIBLE}>
+            <span class:list={['share-row__mark', `share-row__mark--${candidate.kind}`]}>
+              {typeLabel(candidate.kind)}
+            </span>
+            <div class="share-row__main">
+              <a class="share-row__title" href={previewUrl(candidate)} rel="noopener noreferrer" target="_blank">
+                {candidate.title}
+                <span class="visually-hidden"> (opens in new tab)</span>
+              </a>
+              <p class="share-row__meta">
+                {candidate.date ? (
+                  <time datetime={candidate.date.toISOString()}>
+                    {dateLabel(candidate.kind)} {formatDate(candidate.date)}
+                  </time>
+                ) : (
+                  <span>No date</span>
+                )}
+                <span aria-hidden="true">/</span>
+                <span>{candidate.uri}</span>
+              </p>
+            </div>
+            <div class="share-row__actions">
+              <a
+                class="share-row__preview"
+                href={previewUrl(candidate)}
+                rel="noopener noreferrer"
+                target="_blank"
+              >
+                View
+                <span class="visually-hidden"> (opens in new tab)</span>
+              </a>
+              <form method="POST" action={actions.shareAtmosphereContent}>
+                <input type="hidden" name="sourceRepo" value={repo} />
+                <input type="hidden" name="candidateUri" value={candidate.uri} />
+                <button class="share-row__share" type="submit">
+                  Share
+                </button>
+              </form>
+            </div>
+          </li>
+        ))}
+      </ul>
+      <p class="shareable-content__empty-filter" data-share-picker-empty hidden>
+        No records match this filter.
+      </p>
+      <button
+        class="shareable-content__load"
+        type="button"
+        data-share-picker-load
+        hidden={items.length <= INITIAL_VISIBLE}
+      >
+        Load more
+      </button>
+      <form class="share-uri" method="POST" action={actions.shareAtmosphereContent}>
+        <label class="share-uri__label" for="share-at-uri">Share AT URI</label>
+        <input type="hidden" name="sourceRepo" value={repo} />
+        <input
+          id="share-at-uri"
+          class="share-uri__input"
+          type="url"
+          name="candidateUri"
+          inputmode="url"
+          placeholder="at://did:plc:.../site.standard.document/..."
+          autocomplete="off"
+          required
+        />
+        <button class="share-uri__button" type="submit">Share</button>
+      </form>
+    </div>
+  ) : (
+    <div class="shareable-content__panel shareable-content__panel--empty">
+      <p class="shareable-content__notice" role="status">
+        No shareable events or Standard Site documents were found for {repo}.
+      </p>
+      <form class="share-uri" method="POST" action={actions.shareAtmosphereContent}>
+        <label class="share-uri__label" for="share-at-uri-empty">Share AT URI</label>
+        <input type="hidden" name="sourceRepo" value={repo} />
+        <input
+          id="share-at-uri-empty"
+          class="share-uri__input"
+          type="url"
+          name="candidateUri"
+          inputmode="url"
+          placeholder="at://did:plc:.../community.lexicon.calendar.event/..."
+          autocomplete="off"
+          required
+        />
+        <button class="share-uri__button" type="submit">Share</button>
+      </form>
+    </div>
+  )}
+</section>
+
+<script>
+  type ShareFilter = 'all' | 'event' | 'document';
+
+  document.querySelectorAll<HTMLElement>('[data-share-picker]').forEach((picker) => {
+    const rows = Array.from(picker.querySelectorAll<HTMLElement>('[data-share-row]'));
+    const filters = Array.from(picker.querySelectorAll<HTMLButtonElement>('[data-filter]'));
+    const loadButton = picker.querySelector<HTMLButtonElement>('[data-share-picker-load]');
+    const count = picker.querySelector<HTMLElement>('[data-share-picker-count]');
+    const empty = picker.querySelector<HTMLElement>('[data-share-picker-empty]');
+    const initialVisible = Number(picker.dataset.initialVisible ?? 5);
+    const loadStep = Number(picker.dataset.loadStep ?? 5);
+    let activeFilter: ShareFilter = 'all';
+    let visibleLimit = initialVisible;
+
+    const matchesFilter = (row: HTMLElement) =>
+      activeFilter === 'all' || row.dataset.kind === activeFilter;
+
+    const sync = () => {
+      const matchingRows = rows.filter(matchesFilter);
+      rows.forEach((row) => {
+        const position = matchingRows.indexOf(row);
+        row.hidden = position === -1 || position >= visibleLimit;
+      });
+
+      if (count) {
+        const shown = Math.min(visibleLimit, matchingRows.length);
+        const noun = matchingRows.length === 1 ? 'record' : 'records';
+        count.textContent = `${shown} of ${matchingRows.length} ${noun}`;
+      }
+
+      if (empty) empty.hidden = matchingRows.length > 0;
+      if (loadButton) loadButton.hidden = visibleLimit >= matchingRows.length;
+    };
+
+    filters.forEach((button) => {
+      button.addEventListener('click', () => {
+        activeFilter = (button.dataset.filter ?? 'all') as ShareFilter;
+        visibleLimit = initialVisible;
+        filters.forEach((item) => {
+          item.setAttribute('aria-pressed', String(item === button));
+        });
+        sync();
+      });
+    });
+
+    loadButton?.addEventListener('click', () => {
+      visibleLimit += loadStep;
+      sync();
+    });
+
+    sync();
+  });
+</script>
+
+<style>
+  .shareable-content {
+    min-width: 0;
+  }
+
+  .shareable-content__panel {
+    display: grid;
+    gap: var(--space-sm);
+    padding: var(--space-sm);
+    background: color-mix(in oklch, var(--background) 70%, var(--muted));
+    border: 1px solid color-mix(in oklch, var(--primary) 18%, var(--border));
+    border-radius: var(--radius-sm);
+  }
+
+  .shareable-content__panel--empty {
+    gap: var(--space-md);
+  }
+
+  .shareable-content__summary {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-sm);
+    color: var(--foreground-secondary);
+    font-size: 0.6875rem;
+    font-weight: 700;
+    line-height: var(--leading-normal);
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .shareable-content__notice {
+    margin: 0;
+    color: var(--foreground-secondary);
+    font-size: var(--text-xs);
+    line-height: var(--leading-normal);
+  }
+
+  .shareable-content__toolbar {
+    display: inline-flex;
+    align-items: center;
+    justify-self: start;
+    gap: 3px;
+    padding: 3px;
+    background:
+      linear-gradient(
+        135deg,
+        color-mix(in oklch, var(--primary) 8%, var(--card)),
+        var(--card) 72%
+      );
+    border: 1px solid color-mix(in oklch, var(--primary) 20%, var(--border));
+    border-radius: var(--radius-pill);
+    box-shadow: 0 1px 0 color-mix(in oklch, var(--primary) 10%, transparent);
+  }
+
+  .shareable-content__filter {
+    min-height: 30px;
+    border: 0;
+    border-radius: var(--radius-pill);
+    padding: var(--space-xs) var(--space-md);
+    background: transparent;
+    color: var(--foreground-secondary);
+    font: inherit;
+    font-size: var(--text-xs);
+    font-weight: 800;
+    line-height: 1;
+    cursor: pointer;
+    transition:
+      background 0.15s ease,
+      color 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+
+  .shareable-content__filter[aria-pressed='true'] {
+    background: var(--primary);
+    color: var(--primary-foreground);
+    box-shadow:
+      0 1px 2px color-mix(in oklch, var(--primary) 20%, transparent),
+      inset 0 1px 0 color-mix(in oklch, var(--primary-foreground) 22%, transparent);
+  }
+
+  .shareable-content__filter:not([aria-pressed='true']):hover {
+    background: color-mix(in oklch, var(--primary) 10%, transparent);
+    color: var(--primary);
+  }
+
+  .shareable-content__list {
+    display: grid;
+    gap: 1px;
+    overflow: hidden;
+    list-style: none;
+    background: var(--border);
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+  }
+
+  .share-row {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-sm);
+    min-width: 0;
+    padding: var(--space-sm);
+    background: var(--card);
+    transition: background 0.15s ease;
+  }
+
+  .share-row:hover {
+    background: color-mix(in oklch, var(--primary) 5%, var(--card));
+  }
+
+  .share-row__mark {
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    width: 4.25rem;
+    min-height: 1.5rem;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    color: var(--foreground-secondary);
+    font-size: 0.6875rem;
+    font-weight: 800;
+    line-height: 1;
+    text-transform: uppercase;
+    letter-spacing: 0.04em;
+  }
+
+  .share-row__mark--event {
+    background: var(--warning-muted);
+    color: var(--warning-muted-foreground);
+  }
+
+  .share-row__mark--document {
+    background: var(--info-muted);
+    color: var(--info-muted-foreground);
+  }
+
+  .share-row__main {
+    min-width: 0;
+  }
+
+  .share-row__title {
+    display: block;
+    overflow: hidden;
+    color: var(--card-foreground);
+    font-size: var(--text-sm);
+    font-weight: 700;
+    line-height: var(--leading-tight);
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .share-row__title:hover {
+    color: var(--primary);
+  }
+
+  .share-row__meta {
+    display: flex;
+    align-items: center;
+    gap: 6px;
+    min-width: 0;
+    overflow: hidden;
+    color: var(--foreground-muted);
+    font-size: 0.6875rem;
+    line-height: 1.4;
+  }
+
+  .share-row__meta span:last-child {
+    min-width: 0;
+    overflow: hidden;
+    text-overflow: ellipsis;
+    white-space: nowrap;
+  }
+
+  .share-row__actions {
+    display: inline-flex;
+    align-items: center;
+    gap: var(--space-xs);
+  }
+
+  .share-row__preview,
+  .share-row__share,
+  .share-uri__button,
+  .shareable-content__load {
+    min-height: 30px;
+    display: inline-flex;
+    align-items: center;
+    justify-content: center;
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-size: var(--text-xs);
+    font-weight: 800;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .share-row__preview {
+    padding-inline: var(--space-sm);
+    color: var(--primary);
+  }
+
+  .share-row__preview:hover {
+    background: var(--primary-muted);
+  }
+
+  .share-row__share,
+  .share-uri__button {
+    min-width: 4rem;
+    border: 0;
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--primary);
+    color: var(--primary-foreground);
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+
+  .share-row__share:hover,
+  .share-uri__button:hover {
+    background: var(--primary-hover);
+  }
+
+  .share-row__share:focus-visible,
+  .share-uri__button:focus-visible,
+  .share-uri__input:focus-visible,
+  .shareable-content__filter:focus-visible,
+  .shareable-content__load:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  .share-uri {
+    display: grid;
+    grid-template-columns: auto minmax(0, 1fr) auto;
+    align-items: center;
+    gap: var(--space-sm);
+  }
+
+  .share-uri__label {
+    color: var(--foreground-secondary);
+    font-size: var(--text-xs);
+    font-weight: 800;
+    line-height: 1;
+    white-space: nowrap;
+  }
+
+  .share-uri__input {
+    min-width: 0;
+    min-height: 34px;
+    width: 100%;
+    border: 1px solid var(--border);
+    border-radius: var(--radius-sm);
+    padding: var(--space-xs) var(--space-sm);
+    background: var(--card);
+    color: var(--foreground);
+    font-family: var(--font-body);
+    font-size: var(--text-xs);
+  }
+
+  .share-uri__input::placeholder {
+    color: var(--foreground-muted);
+  }
+
+  .shareable-content__empty-filter {
+    margin: 0;
+    padding: var(--space-sm);
+    color: var(--foreground-secondary);
+    font-size: var(--text-xs);
+    line-height: var(--leading-normal);
+  }
+
+  .shareable-content__load {
+    justify-self: center;
+    min-height: 34px;
+    border: 1px solid color-mix(in oklch, var(--primary) 28%, var(--border));
+    border-radius: var(--radius-pill);
+    padding: var(--space-xs) var(--space-base);
+    background:
+      linear-gradient(
+        135deg,
+        color-mix(in oklch, var(--primary) 9%, var(--card)),
+        var(--card)
+      );
+    color: var(--primary);
+    cursor: pointer;
+    transition:
+      background 0.15s ease,
+      border-color 0.15s ease,
+      color 0.15s ease,
+      box-shadow 0.15s ease;
+  }
+
+  .shareable-content__load:hover {
+    border-color: var(--primary);
+    background: var(--card);
+    box-shadow: 0 1px 2px color-mix(in oklch, var(--primary) 16%, transparent);
+  }
+
+  .share-row__share:disabled,
+  .share-uri__button:disabled,
+  .shareable-content__load:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .share-row__share:disabled:hover,
+  .share-uri__button:disabled:hover,
+  .shareable-content__load:disabled:hover {
+    background: var(--primary);
+  }
+
+  @media (max-width: 760px) {
+    .share-row {
+      grid-template-columns: auto minmax(0, 1fr);
+    }
+
+    .share-row__actions {
+      grid-column: 1 / -1;
+      justify-content: flex-end;
+    }
+  }
+
+  @media (max-width: 520px) {
+    .shareable-content__summary {
+      align-items: flex-start;
+      flex-direction: column;
+      gap: 0;
+    }
+
+    .share-row {
+      align-items: start;
+      grid-template-columns: minmax(0, 1fr);
+    }
+
+    .share-row__mark {
+      width: auto;
+      padding-inline: var(--space-sm);
+    }
+
+    .share-row__actions,
+    .share-uri {
+      grid-template-columns: minmax(0, 1fr);
+      justify-content: stretch;
+    }
+
+    .share-row__preview,
+    .share-row__share,
+    .share-uri__button,
+    .shareable-content__load {
+      width: 100%;
+    }
+  }
+</style>

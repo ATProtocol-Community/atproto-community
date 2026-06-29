@@ -2,11 +2,57 @@
 import Base from "../layouts/Base.astro";
 import Header from "../components/layout/Header.astro";
 import Footer from "../components/layout/Footer.astro";
+import JoinStatusNotice from "../components/communities/JoinStatusNotice.astro";
 import CommunityCard from "../components/communities/CommunityCard.astro";
 import { getLiveCollection } from "astro:content";
+import { actions } from "astro:actions";
+import { getMembership } from "../lib/opensocial/membership";
+import { resolveHandleToDid } from "../lib/community/identity";
 
 const communitiesResult = await getLiveCollection("communities");
 const communities = communitiesResult.entries?.map((entry) => entry.data) ?? [];
+
+const joinResult = Astro.getActionResult(actions.joinOpenSocialCommunity);
+const leaveResult = Astro.getActionResult(actions.leaveOpenSocialCommunity);
+const rawJoinStatus = joinResult?.data?.status ?? (joinResult?.error ? "error" : null);
+const rawLeaveStatus = leaveResult?.data?.status ?? (leaveResult?.error ? "error" : null);
+const statusResult = rawJoinStatus ? joinResult : leaveResult;
+const joinStatus = rawJoinStatus ?? rawLeaveStatus;
+const statusCommunityHandle = statusResult?.data?.community;
+const statusCommunity = statusCommunityHandle
+  ? communities.find((c) => c.handle === statusCommunityHandle)
+  : undefined;
+
+const loggedInUser = Astro.locals.loggedInUser;
+
+// Resolve which opensocial communities the signed-in viewer already belongs to,
+// so members see a "Joined" badge instead of a redundant Join button. Only
+// opensocial communities are probed (others have no join endpoint), and each
+// lookup is isolated: a failed probe just falls back to showing Join.
+const memberHandles = new Set<string>();
+const adminHandles = new Set<string>();
+if (loggedInUser) {
+  const openSocial = communities.filter((c) => c.isOpenSocialCommunity);
+  const results = await Promise.allSettled(
+    openSocial.map(async (c) => {
+      const communityDid = await resolveHandleToDid(c.handle);
+      const membership = await getMembership({
+        communityDid,
+        userDid: loggedInUser.did,
+      });
+      return {
+        handle: c.handle,
+        isMember: membership.isMember,
+        isAdmin: membership.isAdmin,
+      };
+    }),
+  );
+  for (const result of results) {
+    if (result.status !== "fulfilled") continue;
+    if (result.value.isMember) memberHandles.add(result.value.handle);
+    if (result.value.isAdmin) adminHandles.add(result.value.handle);
+  }
+}
 
 const REGION_ORDER = ["North America — USA", "North America — Canada", "South America", "Europe", "Online", "Other"];
 const grouped = new Map<string, typeof communities>();
@@ -35,6 +81,11 @@ const regions = [...grouped.keys()].sort(
         Find one near you or <a href="https://bsky.app/profile/ngerakines.me" rel="noopener noreferrer" target="_blank">start your own</a>.
       </p>
 
+      <JoinStatusNotice
+        status={joinStatus}
+        communityName={statusCommunity?.name}
+      />
+
       {regions.map((region) => (
         <section class="region-group">
           <h2 class="region-heading">{region}</h2>
@@ -43,6 +94,27 @@ const regions = [...grouped.keys()].sort(
               <div class="community-entry">
                 <div class="community-entry__primary">
                   <CommunityCard {...c} />
+                  {c.isOpenSocialCommunity && (
+                    !loggedInUser ? (
+                      <button class="join-btn" type="button" data-open-auth>
+                        Log in to join
+                      </button>
+                    ) : adminHandles.has(c.handle) ? (
+                      <span class="join-badge" aria-label={`You're an admin of ${c.name}`}>
+                        ★ Admin
+                      </span>
+                    ) : memberHandles.has(c.handle) ? (
+                      <form method="POST" action={actions.leaveOpenSocialCommunity}>
+                        <input type="hidden" name="handle" value={c.handle} />
+                        <button class="join-btn join-btn--ghost" type="submit">Leave</button>
+                      </form>
+                    ) : (
+                      <form method="POST" action={actions.joinOpenSocialCommunity}>
+                        <input type="hidden" name="handle" value={c.handle} />
+                        <button class="join-btn" type="submit">Join</button>
+                      </form>
+                    )
+                  )}
                   {c.description && <p class="community-desc">{c.description}</p>}
                 </div>
               </div>
@@ -55,6 +127,18 @@ const regions = [...grouped.keys()].sort(
 
   <Footer slot="footer" />
 </Base>
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-open-auth]').forEach((trigger) => {
+    trigger.addEventListener('click', () => {
+      const menu = document.querySelector<HTMLDetailsElement>('details.auth-menu');
+      if (!menu) return;
+      menu.open = true;
+      menu.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      menu.querySelector<HTMLInputElement>('input[name="atproto-id"]')?.focus({ preventScroll: true });
+    });
+  });
+</script>
 
 <style>
   .communities-page h1 {
@@ -105,4 +189,49 @@ const regions = [...grouped.keys()].sort(
     font-size: var(--text-sm);
     color: var(--foreground-secondary);
   }
+
+  .join-btn {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: var(--space-xs) var(--space-md);
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border: 0;
+    border-radius: var(--radius-pill);
+    font: inherit;
+    font-size: var(--text-xs);
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+  .join-btn:hover {
+    background: var(--primary-hover);
+  }
+  .join-btn:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  .join-btn--ghost {
+    background: transparent;
+    color: var(--primary);
+    border: 1px solid color-mix(in oklch, var(--primary) 35%, var(--border));
+  }
+  .join-btn--ghost:hover {
+    background: color-mix(in oklch, var(--primary) 10%, transparent);
+  }
+
+  .join-badge {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: var(--space-xs) var(--space-md);
+    border-radius: var(--radius-pill);
+    border: 1px solid color-mix(in oklch, var(--primary) 35%, var(--border));
+    color: var(--primary);
+    font-size: var(--text-xs);
+    font-weight: 700;
+  }
+
 </style>

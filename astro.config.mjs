@@ -1,8 +1,10 @@
 // @ts-check
-import { defineConfig } from "astro/config";
+import { defineConfig, sessionDrivers } from "astro/config";
 
 import node from "@astrojs/node";
-import authproto from "@fujocoded/authproto";
+import authproto, { REDIRECT_TO_REFERER_TEMPLATE } from "@fujocoded/authproto";
+
+const isDev = process.env.NODE_ENV !== "production";
 
 // https://astro.build/config
 export default defineConfig({
@@ -16,7 +18,10 @@ export default defineConfig({
     mode: "standalone",
   }),
   session: {
-    driver: { entrypoint: "unstorage/drivers/memory" },
+    // Persist sessions in dev so local server restarts do not force another login.
+    driver: isDev
+      ? sessionDrivers.fs({ base: ".astro-session-dev" })
+      : { entrypoint: "unstorage/drivers/memory" },
   },
   security: {
     allowedDomains: [{ hostname: "atmosphere.community", protocol: "https" }],
@@ -25,15 +30,22 @@ export default defineConfig({
     authproto({
       applicationName: "Atmosphere.community",
       applicationDomain: "https://atmosphere.community",
+      redirects: {
+        afterLogin: REDIRECT_TO_REFERER_TEMPLATE,
+        afterLogout: REDIRECT_TO_REFERER_TEMPLATE,
+      },
       scopes: {
         additionalScopes: [
           "repo:community.lexicon.calendar.rsvp?action=create&action=update",
           "repo:community.opensocial.membership?action=create&action=update",
         ],
       },
-      driver: {
-        name: "memory",
-      },
+      driver: isDev
+        ? {
+            name: "fs",
+            options: { base: ".authproto-dev" },
+          }
+        : { name: "memory" },
     }),
   ],
 });
