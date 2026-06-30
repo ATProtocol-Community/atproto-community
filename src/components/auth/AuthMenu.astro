@@ -153,6 +153,8 @@ const avatarInitial = (displayName || "@").charAt(0).toUpperCase();
 </details>
 
 <script>
+  import { wireDetailsPopover } from '../../lib/client/details-popover';
+
   type Actor = {
     handle: string;
     displayName?: string;
@@ -238,45 +240,22 @@ const avatarInitial = (displayName || "@").charAt(0).toUpperCase();
     });
   };
 
-  const wireDismissBehavior = () => {
-    const openMenus = () =>
-      document.querySelectorAll<HTMLDetailsElement>("details.auth-menu[open]");
-
-    document.addEventListener("pointerdown", (e) => {
-      const target = e.target as Node | null;
-      const { clientX: x, clientY: y } = e;
-      openMenus().forEach((d) => {
-        if (target && d.contains(target)) return;
-        // Browser-extension overlays (e.g. 1Password) render outside our DOM but
-        // geographically over the input. Treat clicks inside the visual bounds
-        // of the trigger or popover as "inside" so the popover doesn't close.
-        const rects: DOMRect[] = [d.getBoundingClientRect()];
-        const popover = d.querySelector(".auth-popover");
-        if (popover) rects.push(popover.getBoundingClientRect());
-        const inside = rects.some(
-          (r) => x >= r.left && x <= r.right && y >= r.top && y <= r.bottom,
-        );
-        if (inside) return;
-        d.open = false;
-      });
-    });
-
-    document.addEventListener("keydown", (e) => {
-      if (e.key !== "Escape") return;
-      openMenus().forEach((d) => {
-        d.open = false;
-        d.querySelector<HTMLElement>("summary")?.focus();
-      });
-    });
-  };
-
   const input = document.getElementById(
     "header-atproto-id",
   ) as HTMLInputElement | null;
   if (input?.form) wireSubmitButton(input.form, input);
 
-  const details = input?.closest<HTMLDetailsElement>("details.auth-menu");
-  if (details && input) wirePlaceholderRotation(details, input);
+  const details = document.querySelector<HTMLDetailsElement>("details.auth-menu");
+  if (details) {
+    wireDetailsPopover(details, {
+      focusSelector: input ? 'input[name="atproto-id"]' : undefined,
+      surfaceSelector: '.auth-popover',
+    });
+  }
+
+  if (details && input) {
+    wirePlaceholderRotation(details, input);
+  }
 
   const combobox = input?.closest("cmb-combobox");
   combobox?.addEventListener("combobox-search", (e) => {
@@ -284,8 +263,6 @@ const avatarInitial = (displayName || "@").charAt(0).toUpperCase();
       .detail;
     detail.results = searchBskyActors(detail.query);
   });
-
-  wireDismissBehavior();
 </script>
 
 <style>

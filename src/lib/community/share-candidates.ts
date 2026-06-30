@@ -2,7 +2,7 @@ import { AtpAgent, AtUri } from '@atproto/api';
 import { DidResolver, MemoryCache, getPds } from '@atproto/identity';
 import { isValidAtUri, type AtUriString } from '@atproto/syntax';
 
-import { parseBlogPostRef } from './shared-content.js';
+import { parseBlogPostRef, resolveStandardDocumentUrl } from './shared-content.js';
 import { parseEventRecord } from './events.js';
 import { resolveHandleToDid } from './identity.js';
 
@@ -22,6 +22,7 @@ export interface ShareCandidate {
   endsAt?: Date;
   location?: string;
   mode?: 'in-person' | 'virtual' | 'hybrid';
+  previewUrl?: string;
 }
 
 export interface ShareCandidateList {
@@ -34,6 +35,32 @@ interface RepoRecord {
   uri: string;
   cid?: string;
   value: unknown;
+}
+
+export async function getRepoRecordByUri(uri: string): Promise<RepoRecord | null> {
+  let parsed: AtUri;
+  try {
+    parsed = new AtUri(uri);
+  } catch {
+    return null;
+  }
+
+  const agent = await createRepoAgent(parsed.host);
+  const response = await agent.com.atproto.repo.getRecord({
+    repo: parsed.host,
+    collection: parsed.collection,
+    rkey: parsed.rkey,
+  });
+  return {
+    uri: response.data.uri,
+    cid: response.data.cid,
+    value: response.data.value,
+  };
+}
+
+async function fetchRecordValue(atUri: string): Promise<Record<string, unknown> | null> {
+  const record = await getRepoRecordByUri(atUri);
+  return record && isRecordValue(record.value) ? record.value : null;
 }
 
 export async function getShareCandidates(repoHandleOrDid: string): Promise<ShareCandidateList> {
@@ -51,8 +78,7 @@ export async function getShareCandidates(repoHandleOrDid: string): Promise<Share
       .map((record) => toEventCandidate(record))
       .filter((candidate): candidate is ShareCandidate => candidate !== null)
       .sort(sortCandidates),
-    documents: documentRecords
-      .map((record) => toDocumentCandidate(record, did))
+    documents: (await Promise.all(documentRecords.map((record) => toDocumentCandidate(record, did))))
       .filter((candidate): candidate is ShareCandidate => candidate !== null)
       .sort(sortCandidates),
   };
@@ -75,17 +101,8 @@ export async function getShareCandidateByUri(
     return null;
   }
 
-  const agent = await createRepoAgent(did);
-  const response = await agent.com.atproto.repo.getRecord({
-    repo: did,
-    collection: parsed.collection,
-    rkey: parsed.rkey,
-  });
-  const record: RepoRecord = {
-    uri: response.data.uri,
-    cid: response.data.cid,
-    value: response.data.value,
-  };
+  const record = await getRepoRecordByUri(uri);
+  if (!record) return null;
 
   return parsed.collection === EVENT_COLLECTION
     ? toEventCandidate(record)
@@ -143,13 +160,14 @@ function toEventCandidate(record: RepoRecord): ShareCandidate | null {
       endsAt: event.endsAt,
       location: event.location,
       mode: event.mode === 'inperson' ? 'in-person' : event.mode,
+      previewUrl: `https://smokesignal.events/${parsed.host}/${parsed.rkey}`,
     };
   } catch {
     return null;
   }
 }
 
-function toDocumentCandidate(record: RepoRecord, did: string): ShareCandidate | null {
+async function toDocumentCandidate(record: RepoRecord, did: string): Promise<ShareCandidate | null> {
   if (!record.cid || !isValidAtUri(record.uri)) return null;
   if (!isRecordValue(record.value)) return null;
 
@@ -168,6 +186,12 @@ function toDocumentCandidate(record: RepoRecord, did: string): ShareCandidate | 
       cid: record.cid,
       date: post.publishedAt,
       path: post.path,
+      previewUrl: await resolveStandardDocumentUrl(
+        record.value,
+        did,
+        parsed.rkey,
+        fetchRecordValue,
+      ),
     };
   } catch {
     return null;

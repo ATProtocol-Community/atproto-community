@@ -11,14 +11,6 @@ import { getRsvpsForEvents, type CalendarRsvp } from '../lib/rsvps';
 
 const rsvpResult = Astro.getActionResult(actions.rsvpEvent);
 
-if (rsvpResult?.data?.redirectUrl) {
-  return Astro.redirect(rsvpResult.data.redirectUrl, 303);
-}
-
-if (rsvpResult?.error) {
-  return Astro.redirect('/events?rsvp=error', 303);
-}
-
 const eventsResult = await getLiveCollection('events');
 const allEvents = (eventsResult.entries ?? [])
   .map((entry) => entry.data)
@@ -45,7 +37,6 @@ if (loggedInUser) {
   }
 }
 
-const rsvpMessage = Astro.url.searchParams.get('rsvp');
 ---
 
 <Base title="Events" description="Upcoming AT Protocol community events, meetups, and conferences.">
@@ -58,7 +49,7 @@ const rsvpMessage = Astro.url.searchParams.get('rsvp');
         Community meetups, conferences, and hangouts across the Atmosphere.
         Events are sourced from <a href="https://smokesignal.events" rel="noopener noreferrer" target="_blank">Smoke Signal</a> and <a href="https://openmeet.net" rel="noopener noreferrer" target="_blank">OpenMeet</a>.
       </p>
-      <RsvpNotice message={rsvpMessage} />
+      <RsvpNotice result={rsvpResult} />
       {rsvpReadFailed && (
         <p class="events-notice events-notice--error">We couldn't check which events you're going to right now.</p>
       )}

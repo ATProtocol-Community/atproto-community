@@ -13,15 +13,26 @@ interface Props {
     displayName?: string;
     avatar: AvatarSource;
   };
+  sharedBy?: {
+    did: string;
+    handle: string;
+    displayName?: string;
+    avatar: AvatarSource;
+  };
   source: string;
   documentUri?: string;
+  shareRecordUri?: string;
+  shareRecordRkey?: string;
   tags?: string[];
 }
 
-const { title, url, excerpt, publishedAt, sharedAt, author, source, tags } = Astro.props;
+const { title, url, excerpt, publishedAt, sharedAt, author, sharedBy, source, tags } = Astro.props;
+const hasActions = Astro.slots.has("actions");
 
 const date = publishedAt ?? sharedAt;
 const authorLabel = author.displayName || `@${author.handle}`;
+const sharedByLabel = sharedBy ? sharedBy.displayName || `@${sharedBy.handle}` : null;
+const shouldShowSharedBy = !!sharedBy && sharedBy.did !== author.did;
 const tag = tags?.[0];
 const community = `@${source}`;
 
@@ -51,7 +62,14 @@ const communityHue = hueFromString(source);
           class="badge badge--location"
           style={`--community-hue:${communityHue}`}
         >{community}</span>
-        <span class="post-card__author">{authorLabel}</span>
+        <span class="post-card__person">
+          <span class="post-card__person-label">by</span> <span class="post-card__person-name">{authorLabel}</span>
+        </span>
+        {shouldShowSharedBy && sharedByLabel && (
+          <span class="post-card__person">
+            <span class="post-card__person-label">shared by</span> <span class="post-card__person-name">{sharedByLabel}</span>
+          </span>
+        )}
         <span class="post-card__date">
           <time datetime={date.toISOString()}>{date.toLocaleDateString('en-US', { month: 'short', day: 'numeric', year: 'numeric' })}</time>
         </span>
@@ -59,6 +77,11 @@ const communityHue = hueFromString(source);
       </div>
     </div>
   </a>
+  {hasActions && (
+    <div class="post-card__actions">
+      <slot name="actions" />
+    </div>
+  )}
 </article>
 
 <style>
@@ -134,7 +157,18 @@ const communityHue = hueFromString(source);
     color: var(--foreground-muted);
   }
 
-  .post-card__author {
+  .post-card__person {
+    display: inline-flex;
+    align-items: baseline;
+    gap: 0.25rem;
+    min-width: 0;
+  }
+
+  .post-card__person-label {
+    color: var(--separator-fg);
+  }
+
+  .post-card__person-name {
     font-weight: 500;
     color: var(--foreground-secondary);
   }
@@ -152,6 +186,12 @@ const communityHue = hueFromString(source);
   }
   .post-card__link:hover .post-card__tag {
     text-decoration-color: currentColor;
+  }
+
+  .post-card__actions {
+    display: flex;
+    justify-content: flex-end;
+    padding: 0 var(--space-base) var(--space-base);
   }
 
   .post-card :global(.badge--location) {

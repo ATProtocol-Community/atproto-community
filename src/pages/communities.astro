@@ -14,13 +14,17 @@ const communities = communitiesResult.entries?.map((entry) => entry.data) ?? [];
 
 const joinResult = Astro.getActionResult(actions.joinOpenSocialCommunity);
 const leaveResult = Astro.getActionResult(actions.leaveOpenSocialCommunity);
-const rawJoinStatus = joinResult?.data?.status ?? (joinResult?.error ? "error" : null);
-const rawLeaveStatus = leaveResult?.data?.status ?? (leaveResult?.error ? "error" : null);
-const statusResult = rawJoinStatus ? joinResult : leaveResult;
-const joinStatus = rawJoinStatus ?? rawLeaveStatus;
-const statusCommunityHandle = statusResult?.data?.community;
-const statusCommunity = statusCommunityHandle
-  ? communities.find((c) => c.handle === statusCommunityHandle)
+
+const joinStatus =
+  joinResult?.data?.status ??
+  (joinResult?.error ? "error" : null) ??
+  leaveResult?.data?.status ??
+  (leaveResult?.error ? "error" : null);
+
+const statusResult = joinResult?.data?.status || joinResult?.error ? joinResult : leaveResult;
+
+const statusCommunity = statusResult?.data?.community?.trim()
+  ? communities.find((c) => c.handle === statusResult.data.community.trim())
   : undefined;
 
 const loggedInUser = Astro.locals.loggedInUser;

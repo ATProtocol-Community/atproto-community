@@ -97,6 +97,19 @@ function enrichAuthor(author: {
   };
 }
 
+function enrichOptionalAuthor(
+  author:
+    | {
+        did: string;
+        handle: string;
+        displayName?: string;
+        avatar?: string;
+      }
+    | undefined,
+) {
+  return author ? enrichAuthor(author) : undefined;
+}
+
 const communityDefinitions = yaml.load(communitiesRaw) as CommunityDefinition[];
 // atmosphere.community is the site's own account — kept separate from the YAML-defined
 // communities because it publishes a different lexicon (site.standard.document, see feed below)
@@ -141,7 +154,11 @@ const feed = defineAtProtoLiveCollection({
     if (!result) return null;
     return {
       ...result,
-      data: { ...result.data, author: enrichAuthor(result.data.author) },
+      data: {
+        ...result.data,
+        author: enrichAuthor(result.data.author),
+        sharedBy: enrichOptionalAuthor(result.data.sharedBy),
+      },
     };
   },
 });

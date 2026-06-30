@@ -168,6 +168,7 @@ const canRsvp = showRsvp && isLoggedIn && Boolean(cid);
         >
           <input type="hidden" name="eventUri" value={atUri} />
           <input type="hidden" name="eventCid" value={cid} />
+          <input type="hidden" name="eventName" value={name} />
           <input
             type="hidden"
             name="status"
@@ -591,28 +592,17 @@ const canRsvp = showRsvp && isLoggedIn && Boolean(cid);
 
         if (error || !data) {
           if (message) {
-            showToast(message, "Couldn't save your RSVP. Try again.", "error");
-          }
-          return;
-        }
-
-        if (
-          data.redirectUrl?.includes("rsvp=error") ||
-          data.redirectUrl?.includes("rsvp=permission")
-        ) {
-          if (message) {
             showToast(
               message,
-              data.redirectUrl.includes("rsvp=permission")
-                ? "Your login needs RSVP permission. Log out and back in, then try again."
-                : "Couldn't save your RSVP. Try again.",
+              error?.message ?? "Couldn't save your RSVP. Try again.",
               "error",
             );
           }
           return;
         }
 
-        const nowGoing = submittedStatus === "going";
+        const nowGoing = data.status === "going";
+        const noticeEventName = data.eventName ?? eventName;
         card.dataset.rsvpStatus = nowGoing ? RSVP_GOING : RSVP_NOT_GOING;
 
         if (goingBadge) goingBadge.hidden = !nowGoing;
@@ -623,18 +613,18 @@ const canRsvp = showRsvp && isLoggedIn && Boolean(cid);
         button.setAttribute(
           "aria-label",
           nowGoing
-            ? `Mark yourself as not going to ${eventName}`
-            : `Mark yourself as going to ${eventName}`,
+            ? `Mark yourself as not going to ${noticeEventName}`
+            : `Mark yourself as going to ${noticeEventName}`,
         );
         statusInput.value = nowGoing ? "notgoing" : "going";
 
         if (message) {
           const text = nowGoing
-            ? eventName
-              ? `You're going to ${eventName}.`
+            ? noticeEventName
+              ? `You're going to ${noticeEventName}.`
               : "You're marked as going."
-            : eventName
-              ? `You're no longer going to ${eventName}.`
+            : noticeEventName
+              ? `You're no longer going to ${noticeEventName}.`
               : "You're no longer marked as going.";
           showToast(message, text, nowGoing ? "success" : "neutral");
         }

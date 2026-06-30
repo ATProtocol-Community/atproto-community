@@ -1,0 +1,353 @@
+---
+import { actions } from 'astro:actions';
+import ShareableContentList from '../content/ShareableContentList.astro';
+import ShareAtUriForm from '../content/ShareAtUriForm.astro';
+import ShareSourceMenu from './ShareSourceMenu.astro';
+import type { ShareCandidateList } from '../../lib/community/share-candidates';
+
+interface Props {
+  loggedInUser: { did: string; handle: string } | null;
+  isMember: boolean;
+  isAdmin: boolean;
+  shareRepo: string;
+  shareSourceProfile: { displayName?: string; avatar?: string } | null;
+  shareCandidates: ShareCandidateList | null;
+  shareCandidatesError: boolean;
+}
+
+const {
+  loggedInUser,
+  isMember,
+  isAdmin,
+  shareRepo,
+  shareSourceProfile,
+  shareCandidates,
+  shareCandidatesError,
+} = Astro.props;
+
+const canShareContent = isMember || isAdmin;
+
+const state = !loggedInUser ? 'logged-out' : canShareContent ? 'member' : 'logged-in';
+const hasCandidateList = !!shareCandidates && (shareCandidates.events.length > 0 || shareCandidates.documents.length > 0);
+const shareUriPlaceholder = hasCandidateList
+  ? 'at://did:plc:.../site.standard.document/...'
+  : 'at://did:plc:.../community.lexicon.calendar.event/...';
+---
+
+{state === 'logged-out' && (
+  <aside class="share-cta" aria-label="Share your content">
+      <div class="share-cta__text">
+        <p class="share-cta__title">Want to share yours?</p>
+        <p class="share-cta__sub">
+          Log into the Atmosphere, join the community, and share your content!
+        </p>
+      </div>
+      <button class="share-cta__button" type="button" data-open-auth>
+        Log in & join the community
+      </button>
+    </aside>
+)}
+{state === 'member' && (
+  <details class="share-cta share-cta--member share-cta--picker" aria-label="Share with the community" open>
+      <summary class="share-cta__header">
+        <span class="share-cta__title">Share with the community</span>
+        <svg class="share-cta__chevron" width="14" height="14" viewBox="0 0 14 14" fill="none" aria-hidden="true" focusable="false">
+          <path d="M3.5 5.25L7 8.75L10.5 5.25" stroke="currentColor" stroke-width="1.5" stroke-linecap="round" stroke-linejoin="round"/>
+        </svg>
+      </summary>
+      {!isAdmin && (
+        <form class="share-cta__leave-form" method="POST" action={actions.leaveAtmosphereCommunity}>
+          <button class="share-cta__leave" type="submit">
+            Leave community
+          </button>
+        </form>
+      )}
+
+      <div class="share-cta__body">
+        <ShareSourceMenu
+          shareRepo={shareRepo}
+          shareSourceProfile={shareSourceProfile}
+          loggedInUserHandle={loggedInUser?.handle ?? null}
+        />
+
+        <div class="share-picker">
+          <p class="share-picker__label">Choose something to share</p>
+          <p class="share-picker__help">
+            Pick an event or <a href="https://standard.site" rel="noopener noreferrer" target="_blank">Standard Site</a> document from this account, or...
+          </p>
+          <section class="shareable-content" aria-label="Shareable content">
+            <ShareableContentList
+              candidates={shareCandidates}
+              repo={shareRepo}
+              error={shareCandidatesError}
+            />
+            <p class="share-manual__help">
+              ...paste an <code>at://</code> URI below. Real URLs coming soon!
+            </p>
+            <ShareAtUriForm
+              repo={shareRepo}
+              inputId="share-at-uri"
+              placeholder={shareUriPlaceholder}
+            />
+          </section>
+        </div>
+      </div>
+    </details>
+)}
+{state === 'logged-in' && (
+  <aside class="share-cta" aria-label="Join the community">
+      <div class="share-cta__text">
+        <p class="share-cta__title">Want to share yours?</p>
+        <p class="share-cta__sub">
+          Join atmosphere.community — your posts can show up here too.
+        </p>
+      </div>
+      <form method="POST" action={actions.joinAtmosphereCommunity}>
+        <button class="share-cta__button" type="submit">
+          Join the community
+        </button>
+      </form>
+    </aside>
+)}
+
+<script>
+  document.querySelectorAll<HTMLElement>('[data-open-auth]').forEach((trigger) => {
+    trigger.addEventListener('click', () => {
+      const menu = document.querySelector<HTMLDetailsElement>('details.auth-menu');
+      if (!menu) return;
+      menu.open = true;
+      menu.scrollIntoView({ behavior: 'smooth', block: 'start' });
+      menu.querySelector<HTMLInputElement>('input[name="atproto-id"]')?.focus({ preventScroll: true });
+    });
+  });
+
+</script>
+
+<style>
+  .share-cta {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-lg);
+    flex-wrap: wrap;
+    margin-top: var(--space-xl);
+    padding: var(--space-lg) var(--space-xl);
+    background: var(--primary-muted);
+    border: 1px solid var(--primary-muted);
+    border-radius: var(--radius-md);
+  }
+
+  .share-cta--picker {
+    display: grid;
+    grid-template-columns: minmax(0, 1fr);
+    gap: 0;
+    padding: 0;
+    background: var(--card);
+    border: 1px solid var(--border);
+    box-shadow: var(--elevation-regular);
+  }
+
+  .share-cta--picker:not([open]) {
+    overflow: hidden;
+  }
+
+  .share-cta__header {
+    display: flex;
+    align-items: center;
+    justify-content: space-between;
+    gap: var(--space-md);
+    padding: var(--space-base) var(--space-lg);
+    background: var(--primary-muted);
+    border-bottom: 1px solid color-mix(in oklch, var(--primary) 12%, var(--border));
+    border-radius: var(--radius-md) var(--radius-md) 0 0;
+    list-style: none;
+    cursor: pointer;
+  }
+
+  .share-cta--picker:not([open]) > .share-cta__header {
+    border-bottom: 0;
+    border-radius: var(--radius-md);
+  }
+
+  .share-cta__header::-webkit-details-marker {
+    display: none;
+  }
+
+  .share-cta__header .share-cta__title {
+    font-size: var(--text-base);
+  }
+
+  .share-cta__chevron {
+    flex: 0 0 auto;
+    margin-inline-start: var(--space-xs);
+    color: var(--foreground-muted);
+    transition: transform 0.2s cubic-bezier(0.2, 0.8, 0.2, 1);
+  }
+
+  .share-cta--picker[open] > .share-cta__header .share-cta__chevron {
+    transform: rotate(180deg);
+    color: var(--primary);
+  }
+
+  .share-cta__leave-form {
+    display: flex;
+    justify-content: flex-end;
+    padding: var(--space-xs) var(--space-lg) var(--space-base);
+    background: var(--primary-muted);
+    border-bottom: 1px solid color-mix(in oklch, var(--primary) 12%, var(--border));
+  }
+
+  .share-cta__leave {
+    display: inline-flex;
+    align-items: center;
+    min-height: 32px;
+    padding: var(--space-xs) var(--space-sm);
+    border: 0;
+    border-radius: var(--radius-sm);
+    background: transparent;
+    color: var(--foreground-muted);
+    font: inherit;
+    font-size: var(--text-xs);
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s ease, color 0.15s ease;
+  }
+
+  .share-cta__leave:hover {
+    background: color-mix(in oklch, var(--primary) 10%, transparent);
+    color: var(--primary);
+  }
+
+  .share-cta__leave:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  .share-cta__body {
+    display: grid;
+    gap: var(--space-md);
+    padding: var(--space-base) var(--space-lg);
+  }
+
+  .share-cta__text {
+    display: grid;
+    gap: 2px;
+    min-width: 0;
+  }
+
+  .share-cta__title {
+    margin: 0;
+    color: var(--primary);
+    font-family: var(--font-body);
+    font-size: var(--text-sm);
+    font-weight: 700;
+  }
+
+  .share-cta__sub {
+    margin: 0;
+    color: var(--foreground-secondary);
+    font-size: var(--text-xs);
+    line-height: var(--leading-normal);
+  }
+  .share-picker {
+    display: grid;
+    gap: var(--space-xs);
+  }
+
+  .share-picker__label {
+    margin: 0;
+    color: var(--foreground);
+    font-size: var(--text-sm);
+    font-weight: 800;
+    line-height: var(--leading-tight);
+  }
+
+  :where(.share-picker__help, .share-manual__help) {
+    margin: 0;
+    color: var(--foreground-secondary);
+    font-size: var(--text-xs);
+    line-height: var(--leading-normal);
+  }
+
+  :where(.share-picker__help, .share-manual__help) a {
+    color: var(--link);
+    text-decoration: underline;
+    text-underline-offset: 2px;
+  }
+
+  :where(.share-picker__help, .share-manual__help) a:hover {
+    color: var(--link-hover);
+  }
+
+  :where(.share-picker__help, .share-manual__help) code {
+    padding: 1px 4px;
+    background: var(--muted);
+    border-radius: var(--radius-sm);
+    font-family: var(--font-mono, monospace);
+    font-size: 0.9em;
+  }
+  .shareable-content {
+    min-width: 0;
+  }
+
+
+
+  .share-cta__button {
+    display: inline-flex;
+    align-items: center;
+    min-height: 40px;
+    padding: var(--space-sm) var(--space-lg);
+    background: var(--primary);
+    color: var(--primary-foreground);
+    border: 0;
+    border-radius: var(--radius-sm);
+    font: inherit;
+    font-size: var(--text-sm);
+    font-weight: 700;
+    cursor: pointer;
+    transition: background 0.15s ease;
+  }
+
+  .share-cta__button:hover {
+    background: var(--primary-hover);
+  }
+
+  .share-cta__button:disabled {
+    opacity: 0.55;
+    cursor: not-allowed;
+  }
+
+  .share-cta__button:disabled:hover {
+    background: var(--primary);
+  }
+
+  .share-cta__button:focus-visible {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
+  }
+
+  .share-cta__button--ghost {
+    background: transparent;
+    color: var(--primary);
+    border: 1px solid color-mix(in oklch, var(--primary) 35%, var(--border));
+  }
+  .share-cta__button--ghost:hover {
+    background: color-mix(in oklch, var(--primary) 10%, transparent);
+  }
+
+  @media (max-width: 640px) {
+    .share-cta__header {
+      flex-wrap: wrap;
+      padding: var(--space-base);
+    }
+
+    .share-cta__body {
+      padding: var(--space-base);
+    }
+
+    .share-cta__button {
+      justify-content: center;
+      width: 100%;
+    }
+  }
+</style>

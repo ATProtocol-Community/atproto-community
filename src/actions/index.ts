@@ -1,108 +1,36 @@
-// TODO: refactor onto @fujocoded/astro-smooth-actions.
-// Drops cleanRedirect / redirectWithStatus / isPermissionError / redirectUrl return shape:
-// throw ActionError for failures, return { status, eventName }, let middleware do PRG via
-// session storage. Also remove the `redirect` form field and the `?rsvp=&event=` query-param
-// channel in events.astro + EventCard.astro.
-
-import { defineAction } from "astro:actions";
+import { ActionError, defineAction } from "astro:actions";
 import { z } from "astro/zod";
 import { AtUri } from "@atproto/api";
 
+import { getAtmosphereCommunityDid } from "../lib/community/atmosphere";
+import { resolveHandleToDid } from "../lib/community/identity";
+import { type JoinStatusCode } from "../lib/community/join-status";
+import {
+  type ShareStatusCode,
+  type UnshareStatusCode,
+} from "../lib/community/share-status";
+import { runJoin, runLeave } from "../lib/community/membership-mutations";
+import { parseSharedDocumentRef } from "../lib/community/shared-content";
+import {
+  getRepoRecordByUri,
+  getShareCandidateByUri,
+} from "../lib/community/share-candidates";
+import {
+  OpenSocialCommunityError,
+  getMembership,
+} from "../lib/opensocial/membership";
+import {
+  SHARED_CONTENT_COLLECTION,
+  shareContentWithCommunity,
+  unshareContentWithCommunity,
+} from "../lib/opensocial/content-sharing";
 import {
   RSVP_STATUS_GOING,
   RSVP_STATUS_NOT_GOING,
   setRsvpStatus,
   type RsvpStatus,
 } from "../lib/rsvps";
-import { getAtmosphereCommunityDid } from "../lib/community/atmosphere";
-import { resolveHandleToDid } from "../lib/community/identity";
-import {
-  OpenSocialCommunityError,
-  ensureUserMembershipRecord,
-  getMembership,
-  joinCommunity,
-  leaveCommunity,
-} from "../lib/opensocial/membership";
-import {
-  getShareCandidateByUri,
-} from "../lib/community/share-candidates";
-import { shareContentWithCommunity } from "../lib/opensocial/content-sharing";
-import { type JoinStatusCode } from "../lib/community/join-status";
 
-type LoggedInUser = NonNullable<App.Locals["loggedInUser"]>;
-
-// Shared join flow for any opensocial community. Returns a status key (never
-// throws) so each entry point can map it onto its own redirect target.
-async function runJoin(
-  loggedInUser: LoggedInUser,
-  communityDid: string,
-): Promise<JoinStatusCode> {
-  try {
-    const membership = await getMembership({
-      communityDid,
-      userDid: loggedInUser.did,
-    });
-    if (membership.isMember || membership.isAdmin) return "already";
-    const membershipRecord = await ensureUserMembershipRecord({
-      loggedInUser,
-      communityDid,
-    });
-    const result = await joinCommunity({
-      communityDid,
-      userDid: loggedInUser.did,
-      membershipCid: membershipRecord.cid,
-    });
-    return result.status === "pending" ? "pending" : "ok";
-  } catch (err) {
-    if (err instanceof OpenSocialCommunityError) return joinStatusFromError(err);
-    if (isPermissionError(err)) return "permission";
-    console.warn("[runJoin] unexpected error", err);
-    return "error";
-  }
-}
-
-// Shared leave flow for any opensocial community. Returns a status key (never
-// throws). Admins get "admin-block" because the appview rejects their leave.
-async function runLeave(
-  loggedInUser: LoggedInUser,
-  communityDid: string,
-): Promise<JoinStatusCode> {
-  try {
-    await leaveCommunity({ communityDid, userDid: loggedInUser.did });
-    return "left";
-  } catch (err) {
-    if (err instanceof OpenSocialCommunityError) return leaveStatusFromError(err);
-    if (isPermissionError(err)) return "permission";
-    console.warn("[runLeave] unexpected error", err);
-    return "error";
-  }
-}
-
-function joinStatusFromError(err: OpenSocialCommunityError): JoinStatusCode {
-  switch (err.code) {
-    case "AlreadyMember":
-      return "already";
-    case "AlreadyPending":
-      return "pending";
-    case "CommunityNotFound":
-      return "missing";
-    default:
-      return "error";
-  }
-}
-
-function leaveStatusFromError(err: OpenSocialCommunityError): JoinStatusCode {
-  switch (err.code) {
-    case "NotMember":
-      return "not-member";
-    case "CommunityNotFound":
-      return "missing";
-    case "CannotLeaveAsAdmin":
-      return "admin-block";
-    default:
-      return "error";
-  }
-}
 
 function joinPayload(status: JoinStatusCode, community?: string) {
   return { status, community };
@@ -123,17 +51,32 @@ function isValidEventUri(uri: string): boolean {
   }
 }
 
+function parseSharedContentRecordUri(
+  uri: string,
+  communityDid: string,
+): AtUri | null {
+  try {
+    const parsed = new AtUri(uri);
+    return parsed.host === communityDid &&
+      parsed.collection === SHARED_CONTENT_COLLECTION &&
+      parsed.rkey.length > 0
+      ? parsed
+      : null;
+  } catch {
+    return null;
+  }
+}
+
 const FORM_STATUS_TO_RSVP_STATUS: Record<"going" | "notgoing", RsvpStatus> = {
   going: RSVP_STATUS_GOING,
   notgoing: RSVP_STATUS_NOT_GOING,
 };
 
-function redirectWithStatus(status: string): string {
-  return `/events?rsvp=${encodeURIComponent(status)}`;
-}
-
-function shareRedirect(status: string): string {
-  return `/community-content?share=${encodeURIComponent(status)}`;
+function throwActionError(
+  code: "UNAUTHORIZED" | "FORBIDDEN" | "BAD_REQUEST" | "INTERNAL_SERVER_ERROR",
+  message: string,
+): never {
+  throw new ActionError({ code, message });
 }
 
 function isPermissionError(error: unknown): boolean {
@@ -185,72 +128,6 @@ export const server = {
     },
   }),
 
-  leaveAtmosphereCommunity: defineAction({
-    accept: "form",
-    handler: async (_input, ctx) => {
-      const loggedInUser = ctx.locals.loggedInUser;
-      if (!loggedInUser) {
-        return joinPayload("signin");
-      }
-      const status = await runLeave(loggedInUser, await getAtmosphereCommunityDid());
-      return joinPayload(status);
-    },
-  }),
-
-  shareAtmosphereContent: defineAction({
-    accept: "form",
-    input: z.object({
-      candidateUri: z.string().min(1),
-      sourceRepo: z.string().min(1).optional(),
-    }),
-    handler: async (input, ctx) => {
-      const loggedInUser = ctx.locals.loggedInUser;
-      if (!loggedInUser) {
-        return { redirectUrl: shareRedirect("signin") };
-      }
-
-      try {
-        const communityDid = await getAtmosphereCommunityDid();
-        const membership = await getMembership({
-          communityDid,
-          userDid: loggedInUser.did,
-        });
-        if (!membership.isMember && !membership.isAdmin) {
-          return { redirectUrl: shareRedirect("not-member") };
-        }
-
-        const sourceRepo = input.sourceRepo ?? loggedInUser.handle;
-        const candidate = await getShareCandidateByUri(
-          sourceRepo,
-          input.candidateUri,
-        );
-        if (!candidate) {
-          return { redirectUrl: shareRedirect("invalid") };
-        }
-
-        await shareContentWithCommunity({
-          communityDid,
-          userDid: loggedInUser.did,
-          candidate,
-        });
-        return { redirectUrl: shareRedirect("ok") };
-      } catch (err) {
-        if (err instanceof OpenSocialCommunityError) {
-          return {
-            redirectUrl: shareRedirect(
-              err.code === "PermissionDenied" ? "permission" : "error",
-            ),
-          };
-        }
-        if (isPermissionError(err)) {
-          return { redirectUrl: shareRedirect("permission") };
-        }
-        console.warn("[shareAtmosphereContent] unexpected error", err);
-        return { redirectUrl: shareRedirect("error") };
-      }
-    },
-  }),
-
   // Listing-page leave for any opensocial community, addressed by handle.
   leaveOpenSocialCommunity: defineAction({
     accept: "form",
@@ -271,22 +148,168 @@ export const server = {
     },
   }),
 
+  leaveAtmosphereCommunity: defineAction({
+    accept: "form",
+    handler: async (_input, ctx) => {
+      const loggedInUser = ctx.locals.loggedInUser;
+      if (!loggedInUser) {
+        return joinPayload("signin");
+      }
+      const status = await runLeave(loggedInUser, await getAtmosphereCommunityDid());
+      return joinPayload(status);
+    },
+  }),
+
+  shareAtmosphereContent: defineAction({
+    accept: "form",
+    input: z.object({
+      candidateUri: z.string().min(1),
+      sourceRepo: z.string().min(1).optional(),
+    }),
+    handler: async (input, ctx): Promise<{ status: ShareStatusCode }> => {
+      const loggedInUser = ctx.locals.loggedInUser;
+      if (!loggedInUser) {
+        return { status: "signin" };
+      }
+
+      try {
+        const communityDid = await getAtmosphereCommunityDid();
+        const membership = await getMembership({
+          communityDid,
+          userDid: loggedInUser.did,
+        });
+        if (!membership.isMember && !membership.isAdmin) {
+          return { status: "not-member" };
+        }
+
+        const sourceRepo = input.sourceRepo ?? loggedInUser.handle;
+        const candidate = await getShareCandidateByUri(
+          sourceRepo,
+          input.candidateUri,
+        );
+        if (!candidate) {
+          return { status: "not-found" };
+        }
+
+        await shareContentWithCommunity({
+          communityDid,
+          userDid: loggedInUser.did,
+          candidate,
+        });
+        return { status: "ok" };
+      } catch (err) {
+        if (err instanceof OpenSocialCommunityError) {
+          if (err.code === "PermissionDenied") {
+            return { status: "no-permission" };
+          }
+          console.warn("[shareAtmosphereContent] OpenSocial error", err);
+          return { status: "failed" };
+        }
+        if (isPermissionError(err)) {
+          return { status: "no-permission" };
+        }
+        console.warn("[shareAtmosphereContent] unexpected error", err);
+        return { status: "failed" };
+      }
+    },
+  }),
+
+  unshareAtmosphereContent: defineAction({
+    accept: "form",
+    input: z.object({
+      shareRecordUri: z.string().min(1),
+    }),
+    handler: async (
+      input,
+      ctx,
+    ): Promise<{ status: UnshareStatusCode; shareRecordUri: string }> => {
+      const loggedInUser = ctx.locals.loggedInUser;
+      if (!loggedInUser) {
+        return { status: "signin", shareRecordUri: input.shareRecordUri };
+      }
+
+      try {
+        const communityDid = await getAtmosphereCommunityDid();
+        const parsedShareRecordUri = parseSharedContentRecordUri(
+          input.shareRecordUri,
+          communityDid,
+        );
+        if (!parsedShareRecordUri) {
+          return { status: "not-found", shareRecordUri: input.shareRecordUri };
+        }
+
+        const response = await getRepoRecordByUri(input.shareRecordUri);
+        if (!response || typeof response.value !== "object" || response.value === null) {
+          return { status: "not-found", shareRecordUri: input.shareRecordUri };
+        }
+
+        const sharedRecord = parseSharedDocumentRef(
+          response.value as Record<string, unknown>,
+          {
+            source: communityDid,
+            shareRecordUri: response.uri,
+            shareRecordRkey: parsedShareRecordUri.rkey,
+          },
+        );
+        if (!sharedRecord) {
+          return { status: "not-found", shareRecordUri: input.shareRecordUri };
+        }
+
+        const isOriginalSharer = sharedRecord.sharedBy === loggedInUser.did;
+        if (!isOriginalSharer) {
+          const membership = await getMembership({
+            communityDid,
+            userDid: loggedInUser.did,
+          });
+          if (!membership.isAdmin) {
+            return { status: "not-author", shareRecordUri: input.shareRecordUri };
+          }
+        }
+
+        await unshareContentWithCommunity({
+          communityDid,
+          userDid: loggedInUser.did,
+          shareRecordRkey: sharedRecord.shareRecordRkey,
+        });
+        return { status: "ok", shareRecordUri: input.shareRecordUri };
+      } catch (err) {
+        if (err instanceof OpenSocialCommunityError) {
+          if (err.code === "RecordNotFound") {
+            return { status: "missing", shareRecordUri: input.shareRecordUri };
+          }
+          if (err.code === "PermissionDenied") {
+            return { status: "no-permission", shareRecordUri: input.shareRecordUri };
+          }
+          console.warn("[unshareAtmosphereContent] OpenSocial error", err);
+          return { status: "failed", shareRecordUri: input.shareRecordUri };
+        }
+        if (isPermissionError(err)) {
+          return { status: "no-permission", shareRecordUri: input.shareRecordUri };
+        }
+        console.warn("[unshareAtmosphereContent] unexpected error", err);
+        return { status: "failed", shareRecordUri: input.shareRecordUri };
+      }
+    },
+  }),
+
+
   rsvpEvent: defineAction({
     accept: "form",
     input: z.object({
       eventUri: z.string(),
       eventCid: z.string(),
+      eventName: z.string().optional(),
       status: z.enum(["going", "notgoing"]),
     }),
     handler: async (input, ctx) => {
       const loggedInUser = ctx.locals.loggedInUser;
 
       if (!loggedInUser) {
-        return { redirectUrl: redirectWithStatus("error") };
+        throwActionError("UNAUTHORIZED", "You need to sign in to RSVP.");
       }
 
       if (!isValidEventUri(input.eventUri) || input.eventCid.length === 0) {
-        return { redirectUrl: redirectWithStatus("error") };
+        throwActionError("BAD_REQUEST", "That RSVP request is invalid.");
       }
 
       try {
@@ -296,16 +319,15 @@ export const server = {
           FORM_STATUS_TO_RSVP_STATUS[input.status],
         );
       } catch (error) {
-        return {
-          redirectUrl: redirectWithStatus(
-            isPermissionError(error) ? "permission" : "error",
-          ),
-        };
+        throwActionError(
+          isPermissionError(error) ? "FORBIDDEN" : "INTERNAL_SERVER_ERROR",
+          isPermissionError(error)
+            ? "Your login is missing permission to RSVP to events."
+            : "We couldn't update your RSVP right now. Please try again.",
+        );
       }
 
-      return {
-        redirectUrl: redirectWithStatus(input.status),
-      };
+      return { status: input.status, eventName: input.eventName ?? null };
     },
   }),
 };

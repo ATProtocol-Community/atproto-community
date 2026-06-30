@@ -8,14 +8,16 @@ import EventCard from "../components/events/EventCard.astro";
 import CommunityCard from "../components/communities/CommunityCard.astro";
 import GetInvolved from "../components/layout/GetInvolved.astro";
 import { getLiveCollection } from "astro:content";
+import { dedupeFeedEntries } from "../lib/community/dedup-feed";
 const communitiesResult = await getLiveCollection("communities");
 const communities = (communitiesResult.entries ?? []).map(
   (entry) => entry.data,
 );
 
 const feedResult = await getLiveCollection("feed");
-const mergedPosts = (feedResult.entries ?? [])
-  .map((entry) => entry.data)
+const mergedPosts = dedupeFeedEntries(
+  (feedResult.entries ?? []).map((entry) => entry.data),
+)
   .sort(
     (a, b) =>
       (b.publishedAt ?? b.sharedAt).getTime() -

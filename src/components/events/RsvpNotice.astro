@@ -1,29 +1,30 @@
 ---
+import { actions, type ActionReturnType } from "astro:actions";
+
+type RsvpResult = ActionReturnType<typeof actions.rsvpEvent>;
+
 interface Props {
-  message: string | null;
-  eventName?: string | null;
+  result?: RsvpResult;
 }
 
-const { message, eventName } = Astro.props;
+const { result } = Astro.props;
+const status = result?.data?.status;
+const eventName = result?.data?.eventName;
+const errorMessage = result?.error?.message;
 ---
 
-{message === 'going' && (
+{status === "going" && (
   <p class="events-notice events-notice--success">
     {eventName ? `You're going to ${eventName}.` : "You're marked as going."}
   </p>
 )}
-{message === 'notgoing' && (
+{status === "notgoing" && (
   <p class="events-notice events-notice--success">
     {eventName ? `You're no longer going to ${eventName}.` : "You're no longer marked as going."}
   </p>
 )}
-{message === 'permission' && (
-  <p class="events-notice events-notice--error">Your login needs RSVP permission. Log out and log back in, then try again.</p>
-)}
-{message === 'error' && (
-  <p class="events-notice events-notice--error">
-    {eventName ? `We couldn't save your RSVP for ${eventName}. Please try again.` : "We couldn't save your RSVP. Please try again."}
-  </p>
+{errorMessage && (
+  <p class="events-notice events-notice--error">{errorMessage}</p>
 )}
 
 <style>
