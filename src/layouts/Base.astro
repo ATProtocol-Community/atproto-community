@@ -46,15 +46,25 @@ import '../styles/global.css';
       rel="stylesheet"
     />
   </head>
-  <body>
+  <body class="page-shell">
     <a href="#main" class="skip-link">Skip to content</a>
     <slot name="header" />
     <main id="main">
       <slot />
     </main>
     <slot name="footer" />
+    <style>
+      .page-shell {
+        display: flex;
+        flex-direction: column;
+      }
+      .page-shell main {
+        flex: 1 0 auto;
+      }
+    </style>
     <script>
       import { applyEventCardTiming } from "../lib/client/event-time";
+
 
       // Localize event times and day labels to the user's timezone.
       // Falls back to the UTC time rendered at build time if anything fails.
@@ -65,6 +75,7 @@ import '../styles/global.css';
           // Keep the UTC fallback rendered at build time
         }
       });
+
     </script>
   </body>
 </html>
