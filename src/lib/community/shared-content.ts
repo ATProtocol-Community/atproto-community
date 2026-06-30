@@ -73,6 +73,8 @@ export interface SharedDocumentRef {
   sharedBy?: string;
   sharedAt: Date;
   source: string;
+  shareRecordUri: string;
+  shareRecordRkey: string;
 }
 
 export interface SharedEventRef {
@@ -116,7 +118,11 @@ export function classifySharedContent(value: unknown): SharedContentKind {
 
 export function parseSharedDocumentRef(
   value: Record<string, unknown>,
-  ctx: { source: string },
+  ctx: {
+    source: string;
+    shareRecordUri: string;
+    shareRecordRkey: string;
+  },
 ): SharedDocumentRef | null {
   if (classifySharedContent(value) !== 'document') return null;
 
@@ -132,6 +138,8 @@ export function parseSharedDocumentRef(
     sharedBy: asNonEmptyString(value.sharedBy),
     sharedAt,
     source: ctx.source,
+    shareRecordUri: ctx.shareRecordUri,
+    shareRecordRkey: ctx.shareRecordRkey,
   };
 }
 
@@ -172,8 +180,11 @@ export async function hydrateSharedDocument(
   const docValue = await deps.fetchRecord(ref.documentUri);
   if (!docValue) return null;
 
-  const author = await deps.getProfile(ref.sharedBy || parsed.host);
-  const url = await resolveDocumentUrl(
+  const [author, sharedBy] = await Promise.all([
+    deps.getProfile(parsed.host),
+    ref.sharedBy ? deps.getProfile(ref.sharedBy) : Promise.resolve(undefined),
+  ]);
+  const url = await resolveStandardDocumentUrl(
     docValue,
     parsed.host,
     parsed.rkey,
@@ -191,8 +202,11 @@ export async function hydrateSharedDocument(
     publishedAt: publishedAt ?? undefined,
     sharedAt: ref.sharedAt,
     author,
+    sharedBy,
     source: ref.source,
     documentUri: ref.documentUri,
+    shareRecordUri: ref.shareRecordUri,
+    shareRecordRkey: ref.shareRecordRkey,
     tags: (docValue.tags as string[]) ?? undefined,
   };
 }
@@ -236,7 +250,7 @@ export async function hydrateSharedEvent(
   };
 }
 
-async function resolveDocumentUrl(
+export async function resolveStandardDocumentUrl(
   docValue: Record<string, unknown>,
   repo: string,
   rkey: string,

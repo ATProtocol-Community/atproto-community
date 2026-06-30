@@ -2,7 +2,7 @@
 // signed-service transport with this app's CIMD HTTP Message Signature signer.
 
 import { Client } from "@atproto/lex";
-import { createSignedServiceAgent } from "@fujocoded/atproto-lex-client/signed-service";
+import { createSignedServiceAgent } from "./signed-service.js";
 
 import { signRequest } from "../cmid-signing/index.js";
 

@@ -3,6 +3,7 @@
  */
 
 export * as createRecord from "./opensocial/createRecord.js";
+export * as deleteRecord from "./opensocial/deleteRecord.js";
 export * as getPermissions from "./opensocial/getPermissions.js";
 export * as joinCommunity from "./opensocial/joinCommunity.js";
 export * as leaveCommunity from "./opensocial/leaveCommunity.js";

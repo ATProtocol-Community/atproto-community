@@ -1,10 +1,12 @@
-import { asDatetimeString, isDidString } from "@atproto/lex";
+import { XrpcError, asDatetimeString, isDidString } from "@atproto/lex";
 
 import type { ShareCandidate } from "../community/share-candidates.js";
 import {
   createRecord as createRecordMethod,
+  deleteRecord as deleteRecordMethod,
   sharedContent as sharedContentSchema,
 } from "./generated/community/opensocial.js";
+import { OpenSocialCommunityError } from "./membership.js";
 import { createSignedLexClient } from "./xrpc.js";
 
 const DEFAULT_SERVICE = "https://api.opensocial.community";
@@ -12,6 +14,8 @@ export const SHARED_CONTENT_COLLECTION = "community.opensocial.sharedContent";
 
 type CreateRecordBody = createRecordMethod.$defs.$InputBody;
 type CreateRecordOutput = createRecordMethod.$defs.$OutputBody;
+type DeleteRecordBody = deleteRecordMethod.$defs.$InputBody;
+type DeleteRecordOutput = deleteRecordMethod.$defs.$OutputBody;
 
 function createOpenSocialClient() {
   const appId = import.meta.env.OPENSOCIAL_APP_ID;
@@ -62,8 +66,51 @@ export async function shareContentWithCommunity(input: {
     record,
   };
 
-  const res = await createOpenSocialClient().xrpc(createRecordMethod.main, {
-    body,
-  });
+  const res = await xrpc(() =>
+    createOpenSocialClient().xrpc(createRecordMethod.main, {
+      body,
+    }),
+  );
   return res.body;
+}
+
+export async function unshareContentWithCommunity(input: {
+  communityDid: string;
+  userDid: string;
+  shareRecordRkey: string;
+}): Promise<DeleteRecordOutput> {
+  const body: DeleteRecordBody = {
+    communityDid: did(input.communityDid, "communityDid"),
+    userDid: did(input.userDid, "userDid"),
+    collection: SHARED_CONTENT_COLLECTION,
+    rkey: input.shareRecordRkey,
+  };
+
+  const res = await xrpc(() =>
+    createOpenSocialClient().xrpc(deleteRecordMethod.main, {
+      body,
+    }),
+  );
+  return res.body;
+}
+
+async function xrpc<T>(call: () => Promise<T>): Promise<T> {
+  try {
+    return await call();
+  } catch (err) {
+    throw toOpenSocialCommunityError(err);
+  }
+}
+
+function toOpenSocialCommunityError(err: unknown): OpenSocialCommunityError {
+  if (err instanceof OpenSocialCommunityError) return err;
+  if (err instanceof XrpcError) {
+    const downstream = err.toDownstreamError();
+    return new OpenSocialCommunityError(
+      downstream.status,
+      downstream.body.error,
+      downstream.body.message || downstream.body.error,
+    );
+  }
+  throw err;
 }

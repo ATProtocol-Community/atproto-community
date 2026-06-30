@@ -103,8 +103,11 @@ export const feedOutputSchema = z.object({
   publishedAt: z.coerce.date().optional(),
   sharedAt: z.coerce.date(),
   author: authorSchema,
+  sharedBy: authorSchema.optional(),
   source: z.string(),
   documentUri: z.string(),
+  shareRecordUri: z.string().optional(),
+  shareRecordRkey: z.string().optional(),
   tags: z.array(z.string()).optional(),
 });
 
@@ -138,8 +141,14 @@ type EventEntry = z.input<typeof eventsOutputSchema>;
 // Pre-enrichment shape returned by per-collection feed transformers. They emit
 // the raw AtProto profile (avatar as plain URL string); the wrapper in
 // live.config.ts collapses that into the schema's discriminated union.
-export type RawFeedEntry = Omit<FeedEntry, 'author'> & {
+export type RawFeedEntry = Omit<FeedEntry, 'author' | 'sharedBy'> & {
   author: {
+    did: string;
+    handle: string;
+    displayName?: string;
+    avatar?: string;
+  };
+  sharedBy?: {
     did: string;
     handle: string;
     displayName?: string;
@@ -172,6 +181,8 @@ export const feedFilters: Record<string, FilterFn> = {
   'community.opensocial.sharedContent': (ctx) => {
     const ref = parseSharedDocumentRef(ctx.value as Record<string, unknown>, {
       source: sourceLabel(ctx),
+      shareRecordUri: ctx.uri,
+      shareRecordRkey: ctx.rkey,
     });
     return !!ref && ref.documentUri.startsWith('at://');
   },
@@ -204,6 +215,8 @@ export const feedTransformers: Record<string, TransformFn<RawFeedEntry>> = {
   'community.opensocial.sharedContent': async (ctx) => {
     const ref = parseSharedDocumentRef(ctx.value as Record<string, unknown>, {
       source: sourceLabel(ctx),
+      shareRecordUri: ctx.uri,
+      shareRecordRkey: ctx.rkey,
     });
     if (!ref) return null;
     const post = await hydrateSharedDocument(ref, {
@@ -217,7 +230,7 @@ export const feedTransformers: Record<string, TransformFn<RawFeedEntry>> = {
     if (!post) return null;
     const { textContent, ...rest } = post;
     return {
-      id: ref.documentUri,
+      id: ctx.uri,
       data: {
         ...rest,
         excerpt: textContent ? excerpt(textContent) : undefined,

@@ -33,8 +33,11 @@ export interface SharedPost {
   publishedAt?: Date;
   sharedAt: Date;
   author: AtProfile;
+  sharedBy?: AtProfile;
   source: string;
   documentUri: string;
+  shareRecordUri: string;
+  shareRecordRkey: string;
   tags?: string[];
 }
 
@@ -56,4 +59,3 @@ export interface AtProfile {
   displayName?: string;
   avatar?: string;
 }
-
