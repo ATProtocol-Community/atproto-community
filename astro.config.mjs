@@ -2,6 +2,7 @@
 import { defineConfig, sessionDrivers } from "astro/config";
 
 import node from "@astrojs/node";
+import astroSmoothActions from "@fujocoded/astro-smooth-actions";
 import authproto, { REDIRECT_TO_REFERER_TEMPLATE } from "@fujocoded/authproto";
 
 const isDev = process.env.NODE_ENV !== "production";
@@ -47,5 +48,6 @@ export default defineConfig({
           }
         : { name: "memory" },
     }),
+    astroSmoothActions(),
   ],
 });
