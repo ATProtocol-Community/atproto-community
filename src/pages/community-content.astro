@@ -12,7 +12,8 @@ import { getMembership } from '../lib/opensocial/membership';
 import { getAtmosphereCommunityDid } from '../lib/community/atmosphere';
 import { getShareCandidates } from '../lib/community/share-candidates';
 import { dedupeFeedEntries } from '../lib/community/dedup-feed';
-import { getShareStatusCopy } from '../lib/community/share-status';
+import { getCommunityActionErrorCopy } from '../lib/community/action-error-copy';
+import { getShareOutcomeCopy } from '../lib/community/share-status';
 
 const joinResult = Astro.getActionResult(actions.joinAtmosphereCommunity);
 const leaveResult = Astro.getActionResult(actions.leaveAtmosphereCommunity);
@@ -49,21 +50,17 @@ if (loggedInUser) {
 }
 
 const isKnownCommunityParticipant = isMember || isAdmin;
-const rawJoinStatus =
-  joinResult?.data?.status ??
-  (joinResult?.error ? 'error' : null) ??
-  leaveResult?.data?.status ??
-  (leaveResult?.error ? 'error' : null);
-const joinStatus = rawJoinStatus &&
-  !(isKnownCommunityParticipant && rawJoinStatus === 'error')
-  ? rawJoinStatus
-  : null;
+const joinOutcomeResult = joinResult?.data?.outcome || joinResult?.error ? joinResult : leaveResult;
+const joinOutcome = joinOutcomeResult?.data?.outcome ?? null;
+const joinError = getCommunityActionErrorCopy(joinOutcomeResult?.error, 'join');
 
-const shareStatus = getShareStatusCopy(
-  shareResult?.data?.status,
-  unshareResult?.data?.status,
-  !!shareResult?.error || !!unshareResult?.error,
+const shareOutcomeResult =
+  shareResult?.data?.outcome || shareResult?.error ? shareResult : unshareResult;
+const shareOutcome = getShareOutcomeCopy(
+  shareResult?.data?.outcome,
+  unshareResult?.data?.outcome,
 );
+const shareError = getCommunityActionErrorCopy(shareOutcomeResult?.error, 'share');
 
 const getUnshareableShareRecordUri = (
   post: (typeof mergedPosts)[number],
@@ -127,10 +124,10 @@ if (shareRepo && canShareContent) {
         >.
       </p>
 
-      <JoinStatusNotice status={joinStatus} />
-      {shareStatus && (
-        <p class={`share-status share-status--${shareStatus.tone}`} role="status">
-          {shareStatus.message}
+      <JoinStatusNotice outcome={joinOutcome} error={joinError} />
+      {(shareOutcome || shareError) && (
+        <p class={`share-status share-status--${(shareOutcome ?? shareError)!.tone}`} role="status">
+          {(shareOutcome ?? shareError)!.message}
         </p>
       )}
 

@@ -530,8 +530,10 @@ const canRsvp = showRsvp && isLoggedIn && Boolean(cid);
   }
 </style>
 
-<script>
+  <script>
   import { actions } from "astro:actions";
+  import { getCommunityActionErrorCopy } from "../../lib/community/action-error-copy";
+  import { getRsvpOutcomeCopy } from "../../lib/community/rsvp-status";
 
   const RSVP_GOING = "community.lexicon.calendar.rsvp#going";
   const RSVP_NOT_GOING = "community.lexicon.calendar.rsvp#notgoing";
@@ -580,7 +582,6 @@ const canRsvp = showRsvp && isLoggedIn && Boolean(cid);
         if (!card || !button || !statusInput) return;
 
         const formData = new FormData(form);
-        const submittedStatus = formData.get("status");
         const eventName = button.dataset.eventName ?? "";
 
         button.disabled = true;
@@ -592,41 +593,48 @@ const canRsvp = showRsvp && isLoggedIn && Boolean(cid);
 
         if (error || !data) {
           if (message) {
+            const notice =
+              getCommunityActionErrorCopy(error, "rsvp") ?? {
+                tone: "error" as const,
+                message: "Couldn't save your RSVP. Try again.",
+              };
+            const toastTone =
+              notice.tone === "info" ? "neutral" : notice.tone;
             showToast(
               message,
-              error?.message ?? "Couldn't save your RSVP. Try again.",
-              "error",
+              notice.message,
+              toastTone,
             );
           }
           return;
         }
 
-        const nowGoing = data.status === "going";
         const noticeEventName = data.eventName ?? eventName;
-        card.dataset.rsvpStatus = nowGoing ? RSVP_GOING : RSVP_NOT_GOING;
+        const isSuccess = data.outcome === "going" || data.outcome === "notgoing";
 
-        if (goingBadge) goingBadge.hidden = !nowGoing;
-        if (savedBadge) savedBadge.hidden = true;
+        if (isSuccess) {
+          const nowGoing = data.outcome === "going";
+          card.dataset.rsvpStatus = nowGoing ? RSVP_GOING : RSVP_NOT_GOING;
 
-        button.textContent = nowGoing ? "I'm not going" : "I'm going";
-        button.classList.toggle("event-card__rsvp--cancel", nowGoing);
-        button.setAttribute(
-          "aria-label",
-          nowGoing
-            ? `Mark yourself as not going to ${noticeEventName}`
-            : `Mark yourself as going to ${noticeEventName}`,
-        );
-        statusInput.value = nowGoing ? "notgoing" : "going";
+          if (goingBadge) goingBadge.hidden = !nowGoing;
+          if (savedBadge) savedBadge.hidden = true;
+
+          button.textContent = nowGoing ? "I'm not going" : "I'm going";
+          button.classList.toggle("event-card__rsvp--cancel", nowGoing);
+          button.setAttribute(
+            "aria-label",
+            nowGoing
+              ? `Mark yourself as not going to ${noticeEventName}`
+              : `Mark yourself as going to ${noticeEventName}`,
+          );
+          statusInput.value = nowGoing ? "notgoing" : "going";
+        }
 
         if (message) {
-          const text = nowGoing
-            ? noticeEventName
-              ? `You're going to ${noticeEventName}.`
-              : "You're marked as going."
-            : noticeEventName
-              ? `You're no longer going to ${noticeEventName}.`
-              : "You're no longer marked as going.";
-          showToast(message, text, nowGoing ? "success" : "neutral");
+          const copy = getRsvpOutcomeCopy(data.outcome, noticeEventName || null);
+          if (copy) {
+            showToast(message, copy.message, copy.tone);
+          }
         }
       });
     });

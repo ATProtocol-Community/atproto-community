@@ -1,16 +1,18 @@
 ---
 import {
-  getJoinStatusCopy,
-  type JoinStatusCode,
+  getJoinOutcomeCopy,
+  type JoinOutcomeCode,
 } from "../../lib/community/join-status";
+import type { CommunityActionNotice } from "../../lib/community/action-error-copy";
 
 interface Props {
-  status?: JoinStatusCode | string | null;
+  outcome?: JoinOutcomeCode | null;
+  error?: CommunityActionNotice | null;
   communityName?: string | null;
 }
 
-const { status, communityName } = Astro.props;
-const notice = getJoinStatusCopy(status);
+const { outcome, error, communityName } = Astro.props;
+const notice = error ?? getJoinOutcomeCopy(outcome);
 
 if (!notice) {
   return;

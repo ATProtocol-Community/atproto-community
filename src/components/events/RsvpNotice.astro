@@ -1,5 +1,7 @@
 ---
 import { actions, type ActionReturnType } from "astro:actions";
+import { getCommunityActionErrorCopy } from "../../lib/community/action-error-copy";
+import { getRsvpOutcomeCopy } from "../../lib/community/rsvp-status";
 
 type RsvpResult = ActionReturnType<typeof actions.rsvpEvent>;
 
@@ -8,23 +10,19 @@ interface Props {
 }
 
 const { result } = Astro.props;
-const status = result?.data?.status;
-const eventName = result?.data?.eventName;
-const errorMessage = result?.error?.message;
+const outcome = result?.data?.outcome;
+const eventName = result?.data?.eventName ?? null;
+const errorNotice = getCommunityActionErrorCopy(result?.error, "rsvp");
+const notice = getRsvpOutcomeCopy(outcome ?? null, eventName);
 ---
 
-{status === "going" && (
-  <p class="events-notice events-notice--success">
-    {eventName ? `You're going to ${eventName}.` : "You're marked as going."}
+{notice && (
+  <p class={`events-notice events-notice--${notice.tone}`}>
+    {notice.message}
   </p>
 )}
-{status === "notgoing" && (
-  <p class="events-notice events-notice--success">
-    {eventName ? `You're no longer going to ${eventName}.` : "You're no longer marked as going."}
-  </p>
-)}
-{errorMessage && (
-  <p class="events-notice events-notice--error">{errorMessage}</p>
+{errorNotice && (
+  <p class={`events-notice events-notice--${errorNotice.tone}`}>{errorNotice.message}</p>
 )}
 
 <style>
@@ -40,6 +38,11 @@ const errorMessage = result?.error?.message;
   .events-notice--success {
     background: var(--success-muted);
     color: var(--success-muted-foreground);
+  }
+
+  .events-notice--neutral {
+    background: var(--muted);
+    color: var(--foreground-secondary);
   }
 
   .events-notice--error {

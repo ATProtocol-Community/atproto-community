@@ -1,7 +1,7 @@
 ---
 import type { ShareCandidateList } from '../../lib/community/share-candidates';
 import { actions } from 'astro:actions';
-import SharableContentIcon from './SharableContentIcon.astro';
+import ShareableContentIcon from './ShareableContentIcon.astro';
 
 interface Props {
   candidates: ShareCandidateList | null;
@@ -75,7 +75,7 @@ function formatDate(date: Date | undefined): string {
         const rowUrl = candidate.previewUrl ?? candidate.uri;
         return (
           <li class="share-row" data-share-row data-kind={candidate.kind} hidden={index >= initialVisible}>
-            <SharableContentIcon kind={candidate.kind} />
+            <ShareableContentIcon kind={candidate.kind} />
             <div class="share-row__main">
               <a class="share-row__title" href={rowUrl} rel="noopener noreferrer" target="_blank">
                 {candidate.title}

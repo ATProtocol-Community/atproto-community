@@ -8,6 +8,7 @@ import { getLiveCollection } from "astro:content";
 import { actions } from "astro:actions";
 import { getMembership } from "../lib/opensocial/membership";
 import { resolveHandleToDid } from "../lib/community/identity";
+import { getCommunityActionErrorCopy } from "../lib/community/action-error-copy";
 
 const communitiesResult = await getLiveCollection("communities");
 const communities = communitiesResult.entries?.map((entry) => entry.data) ?? [];
@@ -15,16 +16,12 @@ const communities = communitiesResult.entries?.map((entry) => entry.data) ?? [];
 const joinResult = Astro.getActionResult(actions.joinOpenSocialCommunity);
 const leaveResult = Astro.getActionResult(actions.leaveOpenSocialCommunity);
 
-const joinStatus =
-  joinResult?.data?.status ??
-  (joinResult?.error ? "error" : null) ??
-  leaveResult?.data?.status ??
-  (leaveResult?.error ? "error" : null);
-
-const statusResult = joinResult?.data?.status || joinResult?.error ? joinResult : leaveResult;
-
-const statusCommunity = statusResult?.data?.community?.trim()
-  ? communities.find((c) => c.handle === statusResult.data.community.trim())
+const outcomeResult = joinResult?.data?.outcome || joinResult?.error ? joinResult : leaveResult;
+const joinOutcome = outcomeResult?.data?.outcome ?? null;
+const joinError = getCommunityActionErrorCopy(outcomeResult?.error, "join");
+const statusHandle = outcomeResult?.data?.community?.trim();
+const statusCommunity = statusHandle
+  ? communities.find((c) => c.handle === statusHandle)
   : undefined;
 
 const loggedInUser = Astro.locals.loggedInUser;
@@ -86,7 +83,8 @@ const regions = [...grouped.keys()].sort(
       </p>
 
       <JoinStatusNotice
-        status={joinStatus}
+        outcome={joinOutcome}
+        error={joinError}
         communityName={statusCommunity?.name}
       />
 

@@ -1,18 +1,18 @@
-import { type JoinStatusCode } from "./join-status";
+import { type JoinOutcomeCode } from "./join-status";
 import {
-  OpenSocialCommunityError,
   ensureUserMembershipRecord,
   getMembership,
   joinCommunity,
   leaveCommunity,
 } from "../opensocial/membership";
+import { OpenSocialCommunityError } from "../opensocial/client";
 
 type LoggedInUser = NonNullable<App.Locals["loggedInUser"]>;
 
 export async function runJoin(
   loggedInUser: LoggedInUser,
   communityDid: string,
-): Promise<JoinStatusCode> {
+): Promise<JoinOutcomeCode> {
   try {
     const membership = await getMembership({
       communityDid,
@@ -30,64 +30,48 @@ export async function runJoin(
     });
     return result.status === "pending" ? "pending" : "ok";
   } catch (err) {
-    if (err instanceof OpenSocialCommunityError) return joinStatusFromError(err);
-    if (isPermissionError(err)) return "permission";
-    console.warn("[runJoin] unexpected error", err);
-    return "error";
+    if (err instanceof OpenSocialCommunityError) {
+      const outcome = joinOutcomeFromError(err);
+      if (outcome) return outcome;
+    }
+    throw err;
   }
 }
 
 export async function runLeave(
   loggedInUser: LoggedInUser,
   communityDid: string,
-): Promise<JoinStatusCode> {
+): Promise<JoinOutcomeCode> {
   try {
     await leaveCommunity({ communityDid, userDid: loggedInUser.did });
     return "left";
   } catch (err) {
-    if (err instanceof OpenSocialCommunityError) return leaveStatusFromError(err);
-    if (isPermissionError(err)) return "permission";
-    console.warn("[runLeave] unexpected error", err);
-    return "error";
+    if (err instanceof OpenSocialCommunityError) {
+      const outcome = leaveOutcomeFromError(err);
+      if (outcome) return outcome;
+    }
+    throw err;
   }
 }
 
-function joinStatusFromError(err: OpenSocialCommunityError): JoinStatusCode {
+function joinOutcomeFromError(err: OpenSocialCommunityError): JoinOutcomeCode | null {
   switch (err.code) {
     case "AlreadyMember":
       return "already";
     case "AlreadyPending":
       return "pending";
-    case "CommunityNotFound":
-      return "missing";
     default:
-      return "error";
+      return null;
   }
 }
 
-function leaveStatusFromError(err: OpenSocialCommunityError): JoinStatusCode {
+function leaveOutcomeFromError(err: OpenSocialCommunityError): JoinOutcomeCode | null {
   switch (err.code) {
     case "NotMember":
       return "not-member";
-    case "CommunityNotFound":
-      return "missing";
     case "CannotLeaveAsAdmin":
       return "admin-block";
     default:
-      return "error";
+      return null;
   }
-}
-
-function isPermissionError(error: unknown): boolean {
-  const maybeError = error as {
-    status?: number;
-    error?: string;
-    message?: string;
-  };
-  const text = `${maybeError.error ?? ""} ${maybeError.message ?? ""}`.toLowerCase();
-  return (
-    maybeError.status === 401 ||
-    maybeError.status === 403 ||
-    text.includes("scope")
-  );
 }

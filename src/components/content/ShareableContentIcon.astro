@@ -1,10 +1,7 @@
-            
 ---
-
 interface Props {
     kind: 'event' | 'document';
 }
-
 ---
 <span class:list={['share-row__mark', `share-row__mark--${Astro.props.kind}`]}>
   {Astro.props.kind === 'event' ? (
