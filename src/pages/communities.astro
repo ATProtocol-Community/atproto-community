@@ -6,9 +6,10 @@ import JoinStatusNotice from "../components/communities/JoinStatusNotice.astro";
 import CommunityCard from "../components/communities/CommunityCard.astro";
 import { getLiveCollection } from "astro:content";
 import { actions } from "astro:actions";
-import { getMembership } from "../lib/opensocial/membership";
-import { resolveHandleToDid } from "../lib/community/identity";
-import { getCommunityListingJoinState } from "../features/community-membership/page";
+import {
+  getCommunityListingJoinState,
+  getCommunityListingMembershipState,
+} from "../features/community-membership/page";
 
 const communitiesResult = await getLiveCollection("communities");
 const communities = communitiesResult.entries?.map((entry) => entry.data) ?? [];
@@ -22,34 +23,8 @@ const { notice: joinNotice, communityName } = getCommunityListingJoinState({
 
 const loggedInUser = Astro.locals.loggedInUser;
 
-// Resolve which opensocial communities the signed-in viewer already belongs to,
-// so members see a "Joined" badge instead of a redundant Join button. Only
-// opensocial communities are probed (others have no join endpoint), and each
-// lookup is isolated: a failed probe just falls back to showing Join.
-const memberHandles = new Set<string>();
-const adminHandles = new Set<string>();
-if (loggedInUser) {
-  const openSocial = communities.filter((c) => c.isOpenSocialCommunity);
-  const results = await Promise.allSettled(
-    openSocial.map(async (c) => {
-      const communityDid = await resolveHandleToDid(c.handle);
-      const membership = await getMembership({
-        communityDid,
-        userDid: loggedInUser.did,
-      });
-      return {
-        handle: c.handle,
-        isMember: membership.isMember,
-        isAdmin: membership.isAdmin,
-      };
-    }),
-  );
-  for (const result of results) {
-    if (result.status !== "fulfilled") continue;
-    if (result.value.isMember) memberHandles.add(result.value.handle);
-    if (result.value.isAdmin) adminHandles.add(result.value.handle);
-  }
-}
+const { memberHandles, adminHandles } =
+  await getCommunityListingMembershipState(loggedInUser, communities);
 
 const REGION_ORDER = ["North America — USA", "North America — Canada", "South America", "Europe", "Online", "Other"];
 const grouped = new Map<string, typeof communities>();

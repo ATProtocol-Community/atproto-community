@@ -1,4 +1,8 @@
 import { pickFirstActionResult } from "../../lib/action-result";
+import {
+  getActionErrorNotice,
+  type ActionResultLike,
+} from "../../lib/action-result";
 
 export type ShareOutcomeCode = "ok" | "not-member";
 
@@ -9,25 +13,13 @@ export interface ShareNotice {
   message: string;
 }
 
-type ShareResultLike = {
-  data?: {
-    outcome?: ShareOutcomeCode | null;
-  } | null;
-  error?: {
-    code?: string;
-    message?: string;
-  } | null;
-} | null | undefined;
+type ShareResultLike = ActionResultLike<{
+  outcome?: ShareOutcomeCode | null;
+}>;
 
-type UnshareResultLike = {
-  data?: {
-    outcome?: UnshareOutcomeCode | null;
-  } | null;
-  error?: {
-    code?: string;
-    message?: string;
-  } | null;
-} | null | undefined;
+type UnshareResultLike = ActionResultLike<{
+  outcome?: UnshareOutcomeCode | null;
+}>;
 
 type ShareActionErrorCode =
   | "UNAUTHORIZED"
@@ -94,28 +86,13 @@ export function getShareNotice(
     return UNSHARE_OUTCOME_NOTICE[result.data.outcome];
   }
 
-  return getShareErrorNotice(result?.error?.code, result?.error?.message);
+  return getActionErrorNotice(
+    SHARE_ERROR_NOTICE,
+    result?.error?.code,
+    result?.error?.message,
+  );
 }
 
 export function getShareErrorMessage(code: ShareActionErrorCode): string {
   return SHARE_ERROR_NOTICE[code].message;
-}
-
-function getShareErrorNotice(
-  code?: string,
-  message?: string,
-): ShareNotice | null {
-  if (!code) {
-    return message ? { tone: "error", message } : null;
-  }
-
-  const fallback = SHARE_ERROR_NOTICE[code as ShareActionErrorCode];
-  if (!fallback) {
-    return message ? { tone: "error", message } : null;
-  }
-
-  return {
-    tone: fallback.tone,
-    message: message || fallback.message,
-  };
 }

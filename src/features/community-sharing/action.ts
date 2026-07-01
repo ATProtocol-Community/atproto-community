@@ -7,7 +7,10 @@ import {
   getRepoRecordByUri,
   getShareCandidateByUri,
 } from "../../lib/community/share-candidates";
-import { parseSharedDocumentRef } from "../../lib/community/shared-content";
+import {
+  parseSharedDocumentRef,
+  type SharedDocumentRef,
+} from "../../lib/community/shared-content";
 import {
   SHARED_CONTENT_COLLECTION,
   shareContentWithCommunity,
@@ -15,16 +18,22 @@ import {
 } from "../../lib/opensocial/content-sharing";
 import { OpenSocialCommunityError } from "../../lib/opensocial/client";
 import { getMembership } from "../../lib/opensocial/membership";
+import { isPermissionError } from "../../lib/action-result";
 import {
   getShareErrorMessage,
   type ShareOutcomeCode,
   type UnshareOutcomeCode,
 } from "./notice";
 
-function parseSharedContentRecordUri(
-  uri: string,
-  communityDid: string,
-): AtUri | null {
+type LoggedInUser = NonNullable<App.Locals["loggedInUser"]>;
+
+function parseSharedContentRecordUri({
+  uri,
+  communityDid,
+}: {
+  uri: string;
+  communityDid: string;
+}): AtUri | null {
   try {
     const parsed = new AtUri(uri);
     return parsed.host === communityDid &&
@@ -37,18 +46,64 @@ function parseSharedContentRecordUri(
   }
 }
 
-function isPermissionError(error: unknown): boolean {
-  const maybeError = error as {
-    status?: number;
-    error?: string;
-    message?: string;
-  };
-  const text = `${maybeError.error ?? ""} ${maybeError.message ?? ""}`.toLowerCase();
-  return (
-    maybeError.status === 401 ||
-    maybeError.status === 403 ||
-    text.includes("scope")
+async function loadSharedDocumentRef({
+  shareRecordUri,
+  communityDid,
+  shareRecordRkey,
+}: {
+  shareRecordUri: string;
+  communityDid: string;
+  shareRecordRkey: string;
+}): Promise<SharedDocumentRef> {
+  const response = await getRepoRecordByUri(shareRecordUri);
+  if (!response || typeof response.value !== "object" || response.value === null) {
+    throw new ActionError({
+      code: "NOT_FOUND",
+      message: "That item couldn't be removed. Refresh the page and try again.",
+    });
+  }
+
+  const sharedRecord = parseSharedDocumentRef(
+    response.value as Record<string, unknown>,
+    {
+      source: communityDid,
+      shareRecordUri: response.uri,
+      shareRecordRkey,
+    },
   );
+  if (!sharedRecord) {
+    throw new ActionError({
+      code: "NOT_FOUND",
+      message: "That item couldn't be removed. Refresh the page and try again.",
+    });
+  }
+
+  return sharedRecord;
+}
+
+async function assertCanUnshare({
+  sharedRecord,
+  loggedInUser,
+  communityDid,
+}: {
+  sharedRecord: SharedDocumentRef;
+  loggedInUser: LoggedInUser;
+  communityDid: string;
+}): Promise<void> {
+  if (sharedRecord.sharedBy === loggedInUser.did) {
+    return;
+  }
+
+  const membership = await getMembership({
+    communityDid,
+    userDid: loggedInUser.did,
+  });
+  if (!membership.isAdmin) {
+    throw new ActionError({
+      code: "FORBIDDEN",
+      message: "Only the original sharer can remove that item.",
+    });
+  }
 }
 
 export const sharingActions = {
@@ -141,10 +196,10 @@ export const sharingActions = {
 
       try {
         const communityDid = await getAtmosphereCommunityDid();
-        const parsedShareRecordUri = parseSharedContentRecordUri(
-          input.shareRecordUri,
+        const parsedShareRecordUri = parseSharedContentRecordUri({
+          uri: input.shareRecordUri,
           communityDid,
-        );
+        });
         if (!parsedShareRecordUri) {
           throw new ActionError({
             code: "BAD_REQUEST",
@@ -152,42 +207,16 @@ export const sharingActions = {
           });
         }
 
-        const response = await getRepoRecordByUri(input.shareRecordUri);
-        if (!response || typeof response.value !== "object" || response.value === null) {
-          throw new ActionError({
-            code: "NOT_FOUND",
-            message: "That item couldn't be removed. Refresh the page and try again.",
-          });
-        }
-
-        const sharedRecord = parseSharedDocumentRef(
-          response.value as Record<string, unknown>,
-          {
-            source: communityDid,
-            shareRecordUri: response.uri,
-            shareRecordRkey: parsedShareRecordUri.rkey,
-          },
-        );
-        if (!sharedRecord) {
-          throw new ActionError({
-            code: "NOT_FOUND",
-            message: "That item couldn't be removed. Refresh the page and try again.",
-          });
-        }
-
-        const isOriginalSharer = sharedRecord.sharedBy === loggedInUser.did;
-        if (!isOriginalSharer) {
-          const membership = await getMembership({
-            communityDid,
-            userDid: loggedInUser.did,
-          });
-          if (!membership.isAdmin) {
-            throw new ActionError({
-              code: "FORBIDDEN",
-              message: "Only the original sharer can remove that item.",
-            });
-          }
-        }
+        const sharedRecord = await loadSharedDocumentRef({
+          shareRecordUri: input.shareRecordUri,
+          communityDid,
+          shareRecordRkey: parsedShareRecordUri.rkey,
+        });
+        await assertCanUnshare({
+          sharedRecord,
+          loggedInUser,
+          communityDid,
+        });
 
         await unshareContentWithCommunity({
           communityDid,

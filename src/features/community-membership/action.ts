@@ -4,22 +4,14 @@ import { z } from "astro/zod";
 import { getAtmosphereCommunityDid } from "../../lib/community/atmosphere";
 import { resolveHandleToDid } from "../../lib/community/identity";
 import { OpenSocialCommunityError } from "../../lib/opensocial/client";
+import { isPermissionError } from "../../lib/action-result";
 import { runJoin, runLeave } from "./mutations";
 import { getJoinErrorMessage, type JoinOutcomeCode } from "./notice";
-
-interface AtmosphereJoinResult {
-  outcome: JoinOutcomeCode;
-}
-
-interface ListingJoinResult {
-  outcome: JoinOutcomeCode;
-  community: string;
-}
 
 export const membershipActions = {
   joinAtmosphereCommunity: defineAction({
     accept: "form",
-    handler: async (_input, ctx): Promise<AtmosphereJoinResult> => {
+    handler: async (_input, ctx): Promise<{ outcome: JoinOutcomeCode }> => {
       const loggedInUser = ctx.locals.loggedInUser;
       if (!loggedInUser) {
         throw new ActionError({
@@ -43,7 +35,10 @@ export const membershipActions = {
   joinOpenSocialCommunity: defineAction({
     accept: "form",
     input: z.object({ handle: z.string().min(1) }),
-    handler: async (input, ctx): Promise<ListingJoinResult> => {
+    handler: async (
+      input,
+      ctx,
+    ): Promise<{ outcome: JoinOutcomeCode; community: string }> => {
       const loggedInUser = ctx.locals.loggedInUser;
       if (!loggedInUser) {
         throw new ActionError({
@@ -74,7 +69,10 @@ export const membershipActions = {
   leaveOpenSocialCommunity: defineAction({
     accept: "form",
     input: z.object({ handle: z.string().min(1) }),
-    handler: async (input, ctx): Promise<ListingJoinResult> => {
+    handler: async (
+      input,
+      ctx,
+    ): Promise<{ outcome: JoinOutcomeCode; community: string }> => {
       const loggedInUser = ctx.locals.loggedInUser;
       if (!loggedInUser) {
         throw new ActionError({
@@ -104,7 +102,7 @@ export const membershipActions = {
 
   leaveAtmosphereCommunity: defineAction({
     accept: "form",
-    handler: async (_input, ctx): Promise<AtmosphereJoinResult> => {
+    handler: async (_input, ctx): Promise<{ outcome: JoinOutcomeCode }> => {
       const loggedInUser = ctx.locals.loggedInUser;
       if (!loggedInUser) {
         throw new ActionError({
@@ -152,18 +150,4 @@ function toMembershipActionError(error: unknown): ActionError {
     code: "INTERNAL_SERVER_ERROR",
     message: getJoinErrorMessage("INTERNAL_SERVER_ERROR"),
   });
-}
-
-function isPermissionError(error: unknown): boolean {
-  const maybeError = error as {
-    status?: number;
-    error?: string;
-    message?: string;
-  };
-  const text = `${maybeError.error ?? ""} ${maybeError.message ?? ""}`.toLowerCase();
-  return (
-    maybeError.status === 401 ||
-    maybeError.status === 403 ||
-    text.includes("scope")
-  );
 }

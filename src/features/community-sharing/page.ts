@@ -2,20 +2,6 @@ import { getBlueskyAgent } from "@fujocoded/authproto/helpers";
 
 import { getShareCandidates } from "../../lib/community/share-candidates";
 
-type ShareCandidates = Awaited<ReturnType<typeof getShareCandidates>>;
-
-interface ShareSourceProfile {
-  displayName?: string;
-  avatar?: string;
-}
-
-interface SharePanelState {
-  shareRepo: string;
-  shareSourceProfile: ShareSourceProfile | null;
-  shareCandidates: ShareCandidates | null;
-  shareCandidatesError: boolean;
-}
-
 export async function getCommunitySharePanelState({
   sourceParam,
   fallbackRepo,
@@ -24,7 +10,7 @@ export async function getCommunitySharePanelState({
   sourceParam: string | null | undefined;
   fallbackRepo: string | null | undefined;
   canShareContent: boolean;
-}): Promise<SharePanelState> {
+}) {
   const shareRepo = sourceParam?.trim() || fallbackRepo || "";
   if (!shareRepo || !canShareContent) {
     return {

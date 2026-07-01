@@ -1,3 +1,8 @@
+import {
+  getActionErrorNotice,
+  type ActionResultLike,
+} from "../../lib/action-result";
+
 export type RsvpOutcomeCode = "going" | "notgoing";
 
 export interface RsvpNotice {
@@ -5,16 +10,10 @@ export interface RsvpNotice {
   message: string;
 }
 
-type RsvpResultLike = {
-  data?: {
-    outcome?: RsvpOutcomeCode | null;
-    eventName?: string | null;
-  } | null;
-  error?: {
-    code?: string;
-    message?: string;
-  } | null;
-} | null | undefined;
+type RsvpResultLike = ActionResultLike<{
+  outcome?: RsvpOutcomeCode | null;
+  eventName?: string | null;
+}>;
 
 type RsvpActionErrorCode =
   | "UNAUTHORIZED"
@@ -79,28 +78,13 @@ export function getRsvpNotice(
     };
   }
 
-  return getRsvpErrorNotice(result?.error?.code, result?.error?.message);
+  return getActionErrorNotice(
+    RSVP_ERROR_NOTICE,
+    result?.error?.code,
+    result?.error?.message,
+  );
 }
 
 export function getRsvpErrorMessage(code: RsvpActionErrorCode): string {
   return RSVP_ERROR_NOTICE[code].message;
-}
-
-function getRsvpErrorNotice(
-  code?: string,
-  message?: string,
-): RsvpNotice | null {
-  if (!code) {
-    return message ? { tone: "error", message } : null;
-  }
-
-  const fallback = RSVP_ERROR_NOTICE[code as RsvpActionErrorCode];
-  if (!fallback) {
-    return message ? { tone: "error", message } : null;
-  }
-
-  return {
-    tone: fallback.tone,
-    message: message || fallback.message,
-  };
 }

@@ -1,3 +1,8 @@
+import {
+  getActionErrorNotice,
+  type ActionResultLike,
+} from "../../lib/action-result";
+
 export type JoinOutcomeCode =
   | "ok"
   | "pending"
@@ -11,15 +16,9 @@ export interface JoinNotice {
   message: string;
 }
 
-type JoinResultLike = {
-  data?: {
-    outcome?: JoinOutcomeCode | null;
-  } | null;
-  error?: {
-    code?: string;
-    message?: string;
-  } | null;
-} | null | undefined;
+type JoinResultLike = ActionResultLike<{
+  outcome?: JoinOutcomeCode | null;
+}>;
 
 type JoinActionErrorCode =
   | "UNAUTHORIZED"
@@ -76,28 +75,13 @@ export function getJoinNotice(result: JoinResultLike): JoinNotice | null {
     return JOIN_OUTCOME_NOTICE[outcome];
   }
 
-  return getJoinErrorNotice(result?.error?.code, result?.error?.message);
+  return getActionErrorNotice(
+    JOIN_ERROR_NOTICE,
+    result?.error?.code,
+    result?.error?.message,
+  );
 }
 
 export function getJoinErrorMessage(code: JoinActionErrorCode): string {
   return JOIN_ERROR_NOTICE[code].message;
-}
-
-function getJoinErrorNotice(
-  code?: string,
-  message?: string,
-): JoinNotice | null {
-  if (!code) {
-    return message ? { tone: "error", message } : null;
-  }
-
-  const fallback = JOIN_ERROR_NOTICE[code as JoinActionErrorCode];
-  if (!fallback) {
-    return message ? { tone: "error", message } : null;
-  }
-
-  return {
-    tone: fallback.tone,
-    message: message || fallback.message,
-  };
 }

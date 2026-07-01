@@ -12,9 +12,14 @@ export type RsvpStatus =
   | typeof RSVP_STATUS_INTERESTED
   | typeof RSVP_STATUS_NOT_GOING;
 
+export interface RsvpSubjectRef {
+  uri: string;
+  cid: string;
+}
+
 export interface CalendarRsvpRecord {
   $type: "community.lexicon.calendar.rsvp";
-  subject: { uri: string; cid: string };
+  subject: RsvpSubjectRef;
   status: RsvpStatus;
   createdAt: string;
 }
@@ -26,7 +31,7 @@ export interface CalendarRsvp {
   record: CalendarRsvpRecord;
 }
 
-export type LoggedInUser = NonNullable<App.Locals["loggedInUser"]>;
+type LoggedInUser = NonNullable<App.Locals["loggedInUser"]>;
 
 interface EventLike {
   uri: string;
@@ -113,7 +118,7 @@ export async function getRsvpsForEvents(
 
 export async function setRsvpStatus(
   loggedInUser: LoggedInUser,
-  subject: { uri: string; cid: string },
+  subject: RsvpSubjectRef,
   status: RsvpStatus,
 ): Promise<void> {
   const agent = await getLoggedInAgent(loggedInUser);

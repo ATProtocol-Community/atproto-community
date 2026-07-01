@@ -6,8 +6,10 @@ import {
   RSVP_STATUS_GOING,
   RSVP_STATUS_NOT_GOING,
   setRsvpStatus,
+  type RsvpSubjectRef,
   type RsvpStatus,
 } from "./data";
+import { isPermissionError } from "../../lib/action-result";
 import { getRsvpErrorMessage, type RsvpOutcomeCode } from "./notice";
 
 const EVENT_COLLECTION = "community.lexicon.calendar.event";
@@ -29,20 +31,6 @@ const FORM_STATUS_TO_RSVP_STATUS: Record<"going" | "notgoing", RsvpStatus> = {
   going: RSVP_STATUS_GOING,
   notgoing: RSVP_STATUS_NOT_GOING,
 };
-
-function isPermissionError(error: unknown): boolean {
-  const maybeError = error as {
-    status?: number;
-    error?: string;
-    message?: string;
-  };
-  const text = `${maybeError.error ?? ""} ${maybeError.message ?? ""}`.toLowerCase();
-  return (
-    maybeError.status === 401 ||
-    maybeError.status === 403 ||
-    text.includes("scope")
-  );
-}
 
 export const rsvpActions = {
   rsvpEvent: defineAction({
@@ -74,9 +62,14 @@ export const rsvpActions = {
       }
 
       try {
+        const subject: RsvpSubjectRef = {
+          uri: input.eventUri,
+          cid: input.eventCid,
+        };
+
         await setRsvpStatus(
           loggedInUser,
-          { uri: input.eventUri, cid: input.eventCid },
+          subject,
           FORM_STATUS_TO_RSVP_STATUS[input.status],
         );
       } catch (error) {
