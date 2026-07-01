@@ -7,13 +7,13 @@ import JoinStatusNotice from '../components/communities/JoinStatusNotice.astro';
 import CommunitySharePanel from '../components/communities/CommunitySharePanel.astro';
 import { getLiveCollection } from 'astro:content';
 import { actions } from 'astro:actions';
-import { getBlueskyAgent } from '@fujocoded/authproto/helpers';
-import { getMembership } from '../lib/opensocial/membership';
-import { getAtmosphereCommunityDid } from '../lib/community/atmosphere';
-import { getShareCandidates } from '../lib/community/share-candidates';
 import { dedupeFeedEntries } from '../lib/community/dedup-feed';
-import { getCommunityActionErrorCopy } from '../lib/community/action-error-copy';
-import { getShareOutcomeCopy } from '../lib/community/share-status';
+import {
+  getAtmosphereViewerMembershipState,
+  getJoinActionNotice,
+} from '../features/community-membership/page';
+import { getShareNotice } from '../features/community-sharing/notice';
+import { getCommunitySharePanelState } from '../features/community-sharing/page';
 
 const joinResult = Astro.getActionResult(actions.joinAtmosphereCommunity);
 const leaveResult = Astro.getActionResult(actions.leaveAtmosphereCommunity);
@@ -29,38 +29,13 @@ const mergedPosts = dedupeFeedEntries(
   .sort((a, b) => (b.publishedAt ?? b.sharedAt).getTime() - (a.publishedAt ?? a.sharedAt).getTime());
 
 const loggedInUser = Astro.locals.loggedInUser;
-
-// Resolve membership for the signed-in viewer so we can swap the join CTA out
-// once they're in. Failures here shouldn't take down the page — treat them as
-// "unknown" and fall back to showing the join button.
-let isMember = false;
-let isAdmin = false;
-if (loggedInUser) {
-  try {
-    const communityDid = await getAtmosphereCommunityDid();
-    const membership = await getMembership({
-      communityDid,
-      userDid: loggedInUser.did,
-    });
-    isMember = membership.isMember;
-    isAdmin = membership.isAdmin;
-  } catch (err) {
-    console.warn('[community-content] membership lookup failed', err);
-  }
-}
+const { isMember, isAdmin } = await getAtmosphereViewerMembershipState(
+  loggedInUser,
+);
 
 const isKnownCommunityParticipant = isMember || isAdmin;
-const joinOutcomeResult = joinResult?.data?.outcome || joinResult?.error ? joinResult : leaveResult;
-const joinOutcome = joinOutcomeResult?.data?.outcome ?? null;
-const joinError = getCommunityActionErrorCopy(joinOutcomeResult?.error, 'join');
-
-const shareOutcomeResult =
-  shareResult?.data?.outcome || shareResult?.error ? shareResult : unshareResult;
-const shareOutcome = getShareOutcomeCopy(
-  shareResult?.data?.outcome,
-  unshareResult?.data?.outcome,
-);
-const shareError = getCommunityActionErrorCopy(shareOutcomeResult?.error, 'share');
+const joinNotice = getJoinActionNotice(joinResult, leaveResult);
+const shareNotice = getShareNotice(shareResult, unshareResult);
 
 const getUnshareableShareRecordUri = (
   post: (typeof mergedPosts)[number],
@@ -71,36 +46,17 @@ const getUnshareableShareRecordUri = (
     : null;
 };
 
-const sourceParam = Astro.url.searchParams.get('source')?.trim();
-const shareRepo = sourceParam || loggedInUser?.handle || '';
-let shareSourceProfile: { displayName?: string; avatar?: string } | null = null;
-let shareCandidates: Awaited<ReturnType<typeof getShareCandidates>> | null = null;
-let shareCandidatesError = false;
 const canShareContent = isKnownCommunityParticipant;
-if (shareRepo && canShareContent) {
-  try {
-    const agent = await getBlueskyAgent();
-    const [profileResult, candidatesResult] = await Promise.allSettled([
-      agent?.app.bsky.actor.getProfile({ actor: shareRepo }),
-      getShareCandidates(shareRepo),
-    ]);
-    if (profileResult.status === 'fulfilled') {
-      shareSourceProfile = {
-        displayName: profileResult.value?.data.displayName,
-        avatar: profileResult.value?.data.avatar,
-      };
-    }
-    if (candidatesResult.status === 'fulfilled') {
-      shareCandidates = candidatesResult.value;
-    } else {
-      shareCandidatesError = true;
-      console.warn('[community-content] share candidate lookup failed', candidatesResult.reason);
-    }
-  } catch (err) {
-    shareCandidatesError = true;
-    console.warn('[community-content] share candidate lookup failed', err);
-  }
-}
+const {
+  shareRepo,
+  shareSourceProfile,
+  shareCandidates,
+  shareCandidatesError,
+} = await getCommunitySharePanelState({
+  sourceParam: Astro.url.searchParams.get('source'),
+  fallbackRepo: loggedInUser?.handle,
+  canShareContent,
+});
 
 ---
 
@@ -124,10 +80,10 @@ if (shareRepo && canShareContent) {
         >.
       </p>
 
-      <JoinStatusNotice outcome={joinOutcome} error={joinError} />
-      {(shareOutcome || shareError) && (
-        <p class={`share-status share-status--${(shareOutcome ?? shareError)!.tone}`} role="status">
-          {(shareOutcome ?? shareError)!.message}
+      <JoinStatusNotice notice={joinNotice} />
+      {shareNotice && (
+        <p class={`share-status share-status--${shareNotice.tone}`} role="status">
+          {shareNotice.message}
         </p>
       )}
 

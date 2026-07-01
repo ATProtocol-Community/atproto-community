@@ -1,11 +1,11 @@
-import { type JoinOutcomeCode } from "./join-status";
 import {
   ensureUserMembershipRecord,
   getMembership,
   joinCommunity,
   leaveCommunity,
-} from "../opensocial/membership";
-import { OpenSocialCommunityError } from "../opensocial/client";
+} from "../../lib/opensocial/membership";
+import { OpenSocialCommunityError } from "../../lib/opensocial/client";
+import { type JoinOutcomeCode } from "./notice";
 
 type LoggedInUser = NonNullable<App.Locals["loggedInUser"]>;
 
@@ -18,7 +18,10 @@ export async function runJoin(
       communityDid,
       userDid: loggedInUser.did,
     });
-    if (membership.isMember || membership.isAdmin) return "already";
+    if (membership.isMember || membership.isAdmin) {
+      return "already";
+    }
+
     const membershipRecord = await ensureUserMembershipRecord({
       loggedInUser,
       communityDid,
@@ -29,12 +32,14 @@ export async function runJoin(
       membershipCid: membershipRecord.cid,
     });
     return result.status === "pending" ? "pending" : "ok";
-  } catch (err) {
-    if (err instanceof OpenSocialCommunityError) {
-      const outcome = joinOutcomeFromError(err);
-      if (outcome) return outcome;
+  } catch (error) {
+    if (error instanceof OpenSocialCommunityError) {
+      const outcome = joinOutcomeFromError(error);
+      if (outcome) {
+        return outcome;
+      }
     }
-    throw err;
+    throw error;
   }
 }
 
@@ -45,17 +50,21 @@ export async function runLeave(
   try {
     await leaveCommunity({ communityDid, userDid: loggedInUser.did });
     return "left";
-  } catch (err) {
-    if (err instanceof OpenSocialCommunityError) {
-      const outcome = leaveOutcomeFromError(err);
-      if (outcome) return outcome;
+  } catch (error) {
+    if (error instanceof OpenSocialCommunityError) {
+      const outcome = leaveOutcomeFromError(error);
+      if (outcome) {
+        return outcome;
+      }
     }
-    throw err;
+    throw error;
   }
 }
 
-function joinOutcomeFromError(err: OpenSocialCommunityError): JoinOutcomeCode | null {
-  switch (err.code) {
+function joinOutcomeFromError(
+  error: OpenSocialCommunityError,
+): JoinOutcomeCode | null {
+  switch (error.code) {
     case "AlreadyMember":
       return "already";
     case "AlreadyPending":
@@ -65,8 +74,10 @@ function joinOutcomeFromError(err: OpenSocialCommunityError): JoinOutcomeCode | 
   }
 }
 
-function leaveOutcomeFromError(err: OpenSocialCommunityError): JoinOutcomeCode | null {
-  switch (err.code) {
+function leaveOutcomeFromError(
+  error: OpenSocialCommunityError,
+): JoinOutcomeCode | null {
+  switch (error.code) {
     case "NotMember":
       return "not-member";
     case "CannotLeaveAsAdmin":

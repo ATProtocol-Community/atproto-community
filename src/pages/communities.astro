@@ -8,21 +8,17 @@ import { getLiveCollection } from "astro:content";
 import { actions } from "astro:actions";
 import { getMembership } from "../lib/opensocial/membership";
 import { resolveHandleToDid } from "../lib/community/identity";
-import { getCommunityActionErrorCopy } from "../lib/community/action-error-copy";
+import { getCommunityListingJoinState } from "../features/community-membership/page";
 
 const communitiesResult = await getLiveCollection("communities");
 const communities = communitiesResult.entries?.map((entry) => entry.data) ?? [];
 
-const joinResult = Astro.getActionResult(actions.joinOpenSocialCommunity);
-const leaveResult = Astro.getActionResult(actions.leaveOpenSocialCommunity);
 
-const outcomeResult = joinResult?.data?.outcome || joinResult?.error ? joinResult : leaveResult;
-const joinOutcome = outcomeResult?.data?.outcome ?? null;
-const joinError = getCommunityActionErrorCopy(outcomeResult?.error, "join");
-const statusHandle = outcomeResult?.data?.community?.trim();
-const statusCommunity = statusHandle
-  ? communities.find((c) => c.handle === statusHandle)
-  : undefined;
+const { notice: joinNotice, communityName } = getCommunityListingJoinState({
+  communities,
+  joinResult: Astro.getActionResult(actions.joinOpenSocialCommunity),
+  leaveResult: Astro.getActionResult(actions.leaveOpenSocialCommunity),
+});
 
 const loggedInUser = Astro.locals.loggedInUser;
 
@@ -83,9 +79,8 @@ const regions = [...grouped.keys()].sort(
       </p>
 
       <JoinStatusNotice
-        outcome={joinOutcome}
-        error={joinError}
-        communityName={statusCommunity?.name}
+        notice={joinNotice}
+        communityName={communityName}
       />
 
       {regions.map((region) => (

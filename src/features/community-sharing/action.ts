@@ -2,23 +2,24 @@ import { ActionError, defineAction } from "astro:actions";
 import { z } from "astro/zod";
 import { AtUri } from "@atproto/api";
 
-import { getAtmosphereCommunityDid } from "../lib/community/atmosphere";
-import {
-  type ShareOutcomeCode,
-  type UnshareOutcomeCode,
-} from "../lib/community/share-status";
-import { parseSharedDocumentRef } from "../lib/community/shared-content";
+import { getAtmosphereCommunityDid } from "../../lib/community/atmosphere";
 import {
   getRepoRecordByUri,
   getShareCandidateByUri,
-} from "../lib/community/share-candidates";
-import { getMembership } from "../lib/opensocial/membership";
-import { OpenSocialCommunityError } from "../lib/opensocial/client";
+} from "../../lib/community/share-candidates";
+import { parseSharedDocumentRef } from "../../lib/community/shared-content";
 import {
   SHARED_CONTENT_COLLECTION,
   shareContentWithCommunity,
   unshareContentWithCommunity,
-} from "../lib/opensocial/content-sharing";
+} from "../../lib/opensocial/content-sharing";
+import { OpenSocialCommunityError } from "../../lib/opensocial/client";
+import { getMembership } from "../../lib/opensocial/membership";
+import {
+  getShareErrorMessage,
+  type ShareOutcomeCode,
+  type UnshareOutcomeCode,
+} from "./notice";
 
 function parseSharedContentRecordUri(
   uri: string,
@@ -42,9 +43,7 @@ function isPermissionError(error: unknown): boolean {
     error?: string;
     message?: string;
   };
-  const text = `${maybeError.error ?? ""} ${
-    maybeError.message ?? ""
-  }`.toLowerCase();
+  const text = `${maybeError.error ?? ""} ${maybeError.message ?? ""}`.toLowerCase();
   return (
     maybeError.status === 401 ||
     maybeError.status === 403 ||
@@ -96,31 +95,28 @@ export const sharingActions = {
           candidate,
         });
         return { outcome: "ok" };
-      } catch (err) {
-        if (err instanceof ActionError) {
-          throw err;
+      } catch (error) {
+        if (error instanceof ActionError) {
+          throw error;
         }
-        if (err instanceof OpenSocialCommunityError) {
-          if (err.code === "PermissionDenied") {
+        if (error instanceof OpenSocialCommunityError) {
+          if (error.code === "PermissionDenied") {
             throw new ActionError({
               code: "FORBIDDEN",
-              message:
-                "Your login needs community content permission. Log out and back in, then try again.",
+              message: getShareErrorMessage("FORBIDDEN"),
             });
           }
         }
-        if (isPermissionError(err)) {
+        if (isPermissionError(error)) {
           throw new ActionError({
             code: "FORBIDDEN",
-            message:
-              "Your login needs community content permission. Log out and back in, then try again.",
+            message: getShareErrorMessage("FORBIDDEN"),
           });
         }
-        console.warn("[shareAtmosphereContent] unexpected error", err);
+        console.warn("[shareAtmosphereContent] unexpected error", error);
         throw new ActionError({
           code: "INTERNAL_SERVER_ERROR",
-          message:
-            "Something went wrong while updating community content. Try again later.",
+          message: getShareErrorMessage("INTERNAL_SERVER_ERROR"),
         });
       }
     },
@@ -199,34 +195,31 @@ export const sharingActions = {
           shareRecordRkey: sharedRecord.shareRecordRkey,
         });
         return { outcome: "ok", shareRecordUri: input.shareRecordUri };
-      } catch (err) {
-        if (err instanceof ActionError) {
-          throw err;
+      } catch (error) {
+        if (error instanceof ActionError) {
+          throw error;
         }
-        if (err instanceof OpenSocialCommunityError) {
-          if (err.code === "RecordNotFound") {
+        if (error instanceof OpenSocialCommunityError) {
+          if (error.code === "RecordNotFound") {
             return { outcome: "missing", shareRecordUri: input.shareRecordUri };
           }
-          if (err.code === "PermissionDenied") {
+          if (error.code === "PermissionDenied") {
             throw new ActionError({
               code: "FORBIDDEN",
-              message:
-                "Your login needs community content permission. Log out and back in, then try again.",
+              message: getShareErrorMessage("FORBIDDEN"),
             });
           }
         }
-        if (isPermissionError(err)) {
+        if (isPermissionError(error)) {
           throw new ActionError({
             code: "FORBIDDEN",
-            message:
-              "Your login needs community content permission. Log out and back in, then try again.",
+            message: getShareErrorMessage("FORBIDDEN"),
           });
         }
-        console.warn("[unshareAtmosphereContent] unexpected error", err);
+        console.warn("[unshareAtmosphereContent] unexpected error", error);
         throw new ActionError({
           code: "INTERNAL_SERVER_ERROR",
-          message:
-            "Something went wrong while updating community content. Try again later.",
+          message: getShareErrorMessage("INTERNAL_SERVER_ERROR"),
         });
       }
     },

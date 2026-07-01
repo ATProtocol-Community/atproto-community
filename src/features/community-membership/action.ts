@@ -1,11 +1,11 @@
 import { ActionError, defineAction } from "astro:actions";
 import { z } from "astro/zod";
 
-import { getAtmosphereCommunityDid } from "../lib/community/atmosphere";
-import { resolveHandleToDid } from "../lib/community/identity";
-import { type JoinOutcomeCode } from "../lib/community/join-status";
-import { runJoin, runLeave } from "../lib/community/membership-mutations";
-import { OpenSocialCommunityError } from "../lib/opensocial/client";
+import { getAtmosphereCommunityDid } from "../../lib/community/atmosphere";
+import { resolveHandleToDid } from "../../lib/community/identity";
+import { OpenSocialCommunityError } from "../../lib/opensocial/client";
+import { runJoin, runLeave } from "./mutations";
+import { getJoinErrorMessage, type JoinOutcomeCode } from "./notice";
 
 interface AtmosphereJoinResult {
   outcome: JoinOutcomeCode;
@@ -24,7 +24,7 @@ export const membershipActions = {
       if (!loggedInUser) {
         throw new ActionError({
           code: "UNAUTHORIZED",
-          message: "Sign in first, then try again.",
+          message: getJoinErrorMessage("UNAUTHORIZED"),
         });
       }
 
@@ -40,7 +40,6 @@ export const membershipActions = {
     },
   }),
 
-  // Listing-page join for any opensocial community, addressed by handle.
   joinOpenSocialCommunity: defineAction({
     accept: "form",
     input: z.object({ handle: z.string().min(1) }),
@@ -49,9 +48,10 @@ export const membershipActions = {
       if (!loggedInUser) {
         throw new ActionError({
           code: "UNAUTHORIZED",
-          message: "Sign in first, then try again.",
+          message: getJoinErrorMessage("UNAUTHORIZED"),
         });
       }
+
       let communityDid: string;
       try {
         communityDid = await resolveHandleToDid(input.handle);
@@ -61,6 +61,7 @@ export const membershipActions = {
           message: "We couldn't verify that community right now. Try again later.",
         });
       }
+
       try {
         const outcome = await runJoin(loggedInUser, communityDid);
         return { outcome, community: input.handle };
@@ -70,7 +71,6 @@ export const membershipActions = {
     },
   }),
 
-  // Listing-page leave for any opensocial community, addressed by handle.
   leaveOpenSocialCommunity: defineAction({
     accept: "form",
     input: z.object({ handle: z.string().min(1) }),
@@ -79,9 +79,10 @@ export const membershipActions = {
       if (!loggedInUser) {
         throw new ActionError({
           code: "UNAUTHORIZED",
-          message: "Sign in first, then try again.",
+          message: getJoinErrorMessage("UNAUTHORIZED"),
         });
       }
+
       let communityDid: string;
       try {
         communityDid = await resolveHandleToDid(input.handle);
@@ -91,6 +92,7 @@ export const membershipActions = {
           message: "We couldn't verify that community right now. Try again later.",
         });
       }
+
       try {
         const outcome = await runLeave(loggedInUser, communityDid);
         return { outcome, community: input.handle };
@@ -107,7 +109,7 @@ export const membershipActions = {
       if (!loggedInUser) {
         throw new ActionError({
           code: "UNAUTHORIZED",
-          message: "Sign in first, then try again.",
+          message: getJoinErrorMessage("UNAUTHORIZED"),
         });
       }
 
@@ -133,7 +135,7 @@ function toMembershipActionError(error: unknown): ActionError {
     if (error.code === "CommunityNotFound") {
       return new ActionError({
         code: "NOT_FOUND",
-        message: "Couldn't find that community right now. Try again later.",
+        message: getJoinErrorMessage("NOT_FOUND"),
       });
     }
   }
@@ -141,15 +143,14 @@ function toMembershipActionError(error: unknown): ActionError {
   if (isPermissionError(error)) {
     return new ActionError({
       code: "FORBIDDEN",
-      message:
-        "Your login needs community membership permission. Log out and back in, then try again.",
+      message: getJoinErrorMessage("FORBIDDEN"),
     });
   }
 
   console.warn("[membershipActions] unexpected error", error);
   return new ActionError({
     code: "INTERNAL_SERVER_ERROR",
-    message: "Something went wrong. Try again later.",
+    message: getJoinErrorMessage("INTERNAL_SERVER_ERROR"),
   });
 }
 

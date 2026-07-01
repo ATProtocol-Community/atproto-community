@@ -1,28 +1,17 @@
 ---
-import { actions, type ActionReturnType } from "astro:actions";
-import { getCommunityActionErrorCopy } from "../../lib/community/action-error-copy";
-import { getRsvpOutcomeCopy } from "../../lib/community/rsvp-status";
-
-type RsvpResult = ActionReturnType<typeof actions.rsvpEvent>;
+import type { RsvpNotice as RsvpNoticeType } from "../../features/event-rsvp/notice";
 
 interface Props {
-  result?: RsvpResult;
+  notice?: RsvpNoticeType | null;
 }
 
-const { result } = Astro.props;
-const outcome = result?.data?.outcome;
-const eventName = result?.data?.eventName ?? null;
-const errorNotice = getCommunityActionErrorCopy(result?.error, "rsvp");
-const notice = getRsvpOutcomeCopy(outcome ?? null, eventName);
+const { notice } = Astro.props;
 ---
 
 {notice && (
   <p class={`events-notice events-notice--${notice.tone}`}>
     {notice.message}
   </p>
-)}
-{errorNotice && (
-  <p class={`events-notice events-notice--${errorNotice.tone}`}>{errorNotice.message}</p>
 )}
 
 <style>

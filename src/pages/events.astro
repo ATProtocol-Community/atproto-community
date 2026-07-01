@@ -7,9 +7,10 @@ import Footer from '../components/layout/Footer.astro';
 import HappeningNow from '../components/events/HappeningNow.astro';
 import EventCard from '../components/events/EventCard.astro';
 import RsvpNotice from '../components/events/RsvpNotice.astro';
-import { getRsvpsForEvents, type CalendarRsvp } from '../lib/rsvps';
+import { getRsvpsForEvents, type CalendarRsvp } from '../features/event-rsvp/data';
+import { getRsvpNotice } from '../features/event-rsvp/notice';
 
-const rsvpResult = Astro.getActionResult(actions.rsvpEvent);
+const rsvpNotice = getRsvpNotice(Astro.getActionResult(actions.rsvpEvent));
 
 const eventsResult = await getLiveCollection('events');
 const allEvents = (eventsResult.entries ?? [])
@@ -49,7 +50,7 @@ if (loggedInUser) {
         Community meetups, conferences, and hangouts across the Atmosphere.
         Events are sourced from <a href="https://smokesignal.events" rel="noopener noreferrer" target="_blank">Smoke Signal</a> and <a href="https://openmeet.net" rel="noopener noreferrer" target="_blank">OpenMeet</a>.
       </p>
-      <RsvpNotice result={rsvpResult} />
+      <RsvpNotice notice={rsvpNotice} />
       {rsvpReadFailed && (
         <p class="events-notice events-notice--error">We couldn't check which events you're going to right now.</p>
       )}
