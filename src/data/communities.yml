@@ -159,6 +159,13 @@
   description: Vancouver ATProtocol user group
   bluesky: https://bsky.app/profile/vancouver.atprotocol.community
 
+- name: npmx
+  handle: npmx.dev
+  location: Online
+  region: Online
+  description: The npmx community
+  bluesky: https://bsky.app/profile/npmx.dev
+
 - name: ATProto.com Global
   handle: atproto.com
   location: Online
