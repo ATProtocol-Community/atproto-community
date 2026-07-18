@@ -159,6 +159,13 @@
   description: Vancouver ATProtocol user group
   bluesky: https://bsky.app/profile/vancouver.atprotocol.community
 
+- name: ATProto Vienna
+  handle: atproto.wien
+  location: Vienna, AT
+  region: Europe
+  description: Vienna ATProtocol user group
+  bluesky: https://bsky.app/profile/atproto.wien
+
 - name: npmx
   handle: npmx.dev
   location: Online
