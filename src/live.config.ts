@@ -118,6 +118,9 @@ const communityAccounts = [
   "atmosphere.community",
   ...communityDefinitions.map((community) => community.handle),
 ];
+const LIVE_FEED_EVENTS_TTL_MS = 1000 * 60 * 5;
+const LIMIT_RECORDS_PER_SOURCE = 200;
+const MAX_PAGES_PER_SOURCE = 2;
 
 // Warm the source-profile cache once at server boot. Per-record transformers
 // in lib/live-handlers (e.g. site.standard.document → getProfile('atmosphere.community'),
@@ -128,7 +131,7 @@ await prefetchSourceProfiles(communityAccounts);
 
 const feed = defineAtProtoLiveCollection({
   outputSchema: feedOutputSchema,
-  cacheTtl: 300,
+  cacheTtl: LIVE_FEED_EVENTS_TTL_MS,
   sources: [
     // The site's own curated posts use site.standard.document; community accounts share
     // links via community.opensocial.sharedContent. Both feed into the same output schema
@@ -136,12 +139,14 @@ const feed = defineAtProtoLiveCollection({
     {
       repo: "atmosphere.community",
       collection: "site.standard.document" as const,
-      limit: 200,
+      limit: LIMIT_RECORDS_PER_SOURCE,
+      maxPages: MAX_PAGES_PER_SOURCE,
     },
     ...communityAccounts.map((repo) => ({
       repo,
       collection: "community.opensocial.sharedContent" as const,
-      limit: 200,
+      limit: LIMIT_RECORDS_PER_SOURCE,
+      maxPages: MAX_PAGES_PER_SOURCE,
     })),
   ],
   // A single broken/unreachable repo shouldn't blank out the whole feed during build.
@@ -165,7 +170,7 @@ const feed = defineAtProtoLiveCollection({
 
 const events = defineAtProtoLiveCollection({
   outputSchema: eventsOutputSchema,
-  cacheTtl: 300,
+  cacheTtl: LIVE_FEED_EVENTS_TTL_MS,
   sources: [
     // Two paths into the events list:
     //   1. Native calendar records authored by the community itself.
@@ -176,12 +181,14 @@ const events = defineAtProtoLiveCollection({
     ...communityAccounts.map((repo) => ({
       repo,
       collection: "community.lexicon.calendar.event" as const,
-      limit: 200,
+      limit: LIMIT_RECORDS_PER_SOURCE,
+      maxPages: MAX_PAGES_PER_SOURCE,
     })),
     ...communityAccounts.map((repo) => ({
       repo,
       collection: "community.opensocial.sharedContent" as const,
-      limit: 200,
+      limit: LIMIT_RECORDS_PER_SOURCE,
+      maxPages: MAX_PAGES_PER_SOURCE,
       parseRecord: (value: unknown) => parseSharedEventRecord(value, repo),
     })),
   ],
