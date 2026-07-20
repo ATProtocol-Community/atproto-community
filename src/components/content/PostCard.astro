@@ -1,5 +1,6 @@
 ---
 import Avatar, { type AvatarSource } from "../Avatar.astro";
+import SafeExternalLink from "../SafeExternalLink.astro";
 
 interface Props {
   title: string;
@@ -47,7 +48,7 @@ const communityHue = hueFromString(source);
 ---
 
 <article class="post-card">
-  <a href={url} class="post-card__link" rel="noopener noreferrer" target="_blank">
+  <SafeExternalLink href={url} class="post-card__link" fallbackTag="div">
     <Avatar
       avatar={author.avatar}
       size={36}
@@ -76,7 +77,7 @@ const communityHue = hueFromString(source);
         {tag && <span class="post-card__tag">#{tag}</span>}
       </div>
     </div>
-  </a>
+  </SafeExternalLink>
   {hasActions && (
     <div class="post-card__actions">
       <slot name="actions" />

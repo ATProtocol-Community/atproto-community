@@ -4,6 +4,8 @@ import EventLocation from "./EventLocation.astro";
 import CheckIcon from "./icons/CheckIcon.astro";
 import ExternalLinkIcon from "./icons/ExternalLinkIcon.astro";
 import { eventAnchorId } from "../../lib/community/happening-now";
+import { smokeSignalHref } from "../../lib/community/events";
+import SafeExternalLink from "../SafeExternalLink.astro";
 
 interface Props {
   atUri: string;
@@ -81,6 +83,7 @@ const rsvpButtonAriaLabel = isGoing
   ? `Mark yourself as not going to ${name}`
   : `Mark yourself as going to ${name}`;
 const canRsvp = showRsvp && isLoggedIn && Boolean(cid);
+const eventFallbackHref = smokeSignalHref(atUri);
 ---
 
 <article
@@ -132,7 +135,9 @@ const canRsvp = showRsvp && isLoggedIn && Boolean(cid);
     >
   </p>
   <h3 class:list={["event-card__name", `event-card__name--${titleSize}`]}>
-    <a href={uri} rel="noopener noreferrer" target="_blank">{name}</a>
+    <SafeExternalLink href={uri} fallbackHref={eventFallbackHref}>
+      {name}
+    </SafeExternalLink>
   </h3>
   <p
     class:list={["event-card__desc", !description && "event-card__desc--empty"]}
@@ -148,16 +153,16 @@ const canRsvp = showRsvp && isLoggedIn && Boolean(cid);
     >
   </div>
   <div class="event-card__actions">
-    <a
+    <SafeExternalLink
       href={uri}
+      fallbackHref={eventFallbackHref}
       class="event-card__details"
-      rel="noopener noreferrer"
-      target="_blank"
+      fallbackTag="none"
+      announceNewTab
     >
       Details
       <ExternalLinkIcon class="event-card__details-icon" />
-      <span class="visually-hidden"> (opens in new tab)</span>
-    </a>
+    </SafeExternalLink>
     {
       canRsvp ? (
         <form

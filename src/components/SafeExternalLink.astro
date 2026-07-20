@@ -1,0 +1,39 @@
+---
+import { toSafeExternalHref } from "../lib/community/shared-content";
+
+interface Props {
+  href: string | null | undefined;
+  /** Tried under the same safety rules when href is rejected. */
+  fallbackHref?: string | null;
+  /** What to render when no safe destination exists. */
+  fallbackTag?: "span" | "div" | "none";
+  /** Announce the new tab to screen readers inside the link. */
+  announceNewTab?: boolean;
+  class?: string;
+}
+
+const {
+  href,
+  fallbackHref,
+  fallbackTag = "span",
+  announceNewTab = false,
+  class: className,
+} = Astro.props;
+
+const safeHref = toSafeExternalHref(href, { fallback: fallbackHref });
+const Tag = safeHref ? "a" : fallbackTag === "none" ? null : fallbackTag;
+const linkAttributes = safeHref
+  ? { href: safeHref, rel: "noopener noreferrer", target: "_blank" }
+  : {};
+---
+
+{
+  Tag && (
+    <Tag class={className} {...linkAttributes}>
+      <slot />
+      {safeHref && announceNewTab && (
+        <span class="visually-hidden"> (opens in new tab)</span>
+      )}
+    </Tag>
+  )
+}

@@ -10,6 +10,60 @@ import { normalizeEventMode, parseEventRecord } from './events.js';
 
 const LEAFLET_BASE = 'https://leaflet.pub/profile';
 
+const SAFE_WEB_SCHEMES = new Set(['http:', 'https:']);
+const HAS_OWN_SCHEME = /^[a-zA-Z][a-zA-Z0-9+.-]*:/;
+
+export interface SafeExternalHrefOptions {
+  /** Relative path appended to the base URL once the base passes the safety check. */
+  path?: string | null;
+  /** Tried under the same safety rules when the primary value is rejected. */
+  fallback?: string | null;
+}
+
+export function toSafeExternalHref(
+  value: string | null | undefined,
+  { path, fallback }: SafeExternalHrefOptions = {},
+): string | undefined {
+  return (
+    resolveSafeExternalHref(value, path) ??
+    (fallback != null ? resolveSafeExternalHref(fallback) : undefined)
+  );
+}
+
+function resolveSafeExternalHref(
+  value: string | null | undefined,
+  path?: string | null,
+): string | undefined {
+  if (typeof value !== 'string') return undefined;
+  const trimmed = value.trim();
+  if (!trimmed || trimmed.startsWith('//')) return undefined;
+  let url: URL;
+  try {
+    url = new URL(trimmed);
+  } catch {
+    return undefined;
+  }
+  if (!SAFE_WEB_SCHEMES.has(url.protocol)) return undefined;
+  if (path == null) return url.toString();
+  const trimmedPath = path.trim();
+  // A path carrying its own authority or scheme would replace the base instead
+  // of extending it.
+  if (trimmedPath.startsWith('//') || HAS_OWN_SCHEME.test(trimmedPath)) {
+    return undefined;
+  }
+  const base = url.toString().endsWith('/') ? url.toString() : `${url.toString()}/`;
+  const segment = trimmedPath.startsWith('/') ? trimmedPath.slice(1) : trimmedPath;
+  try {
+    const withPath = new URL(segment, base);
+    // The URL parser strips embedded tab/newline characters, so a smuggled
+    // scheme can survive the pattern check above.
+    if (!SAFE_WEB_SCHEMES.has(withPath.protocol)) return undefined;
+    return withPath.toString();
+  } catch {
+    return undefined;
+  }
+}
+
 export interface BlogPostRef {
   title: string;
   publishedAt: Date;
@@ -61,10 +115,9 @@ function buildPostUrl(
   rkey: string,
   path: string | undefined,
 ): string {
-  if (baseUrl && path) {
-    return appendPath(baseUrl, path);
-  }
-  return `${LEAFLET_BASE}/${did}/${rkey}`;
+  const fallback = `${LEAFLET_BASE}/${did}/${rkey}`;
+  if (!path || !baseUrl) return fallback;
+  return toSafeExternalHref(baseUrl, { path, fallback }) ?? fallback;
 }
 
 export interface SharedDocumentRef {
@@ -258,30 +311,31 @@ export async function resolveStandardDocumentUrl(
   fallbackBaseUrl?: string,
 ): Promise<string> {
   const path = docValue.path as string | undefined;
+  const fallback = `${LEAFLET_BASE}/${repo}/${rkey}`;
 
   const site = typeof docValue.site === 'string' ? docValue.site : undefined;
 
-  if (site && !isValidAtUri(site) && path) return appendPath(site, path);
+  if (site && !isValidAtUri(site) && path) {
+    return toSafeExternalHref(site, { path, fallback }) ?? fallback;
+  }
 
   if (site && isValidAtUri(site)) {
     try {
       const pub = await fetchRecord(site);
       const pubUrl = pub?.url as string | undefined;
-      if (pubUrl && path) return appendPath(pubUrl, path);
+      if (pubUrl && path) {
+        return toSafeExternalHref(pubUrl, { path, fallback }) ?? fallback;
+      }
     } catch {
       // Fall through
     }
   }
 
-  if (fallbackBaseUrl && path) return appendPath(fallbackBaseUrl, path);
+  if (fallbackBaseUrl && path) {
+    return toSafeExternalHref(fallbackBaseUrl, { path, fallback }) ?? fallback;
+  }
 
-  return `${LEAFLET_BASE}/${repo}/${rkey}`;
-}
-
-function appendPath(baseUrl: string, path: string): string {
-  const base = baseUrl.endsWith('/') ? baseUrl : `${baseUrl}/`;
-  const segment = path.startsWith('/') ? path.slice(1) : path;
-  return new URL(segment, base).toString();
+  return fallback;
 }
 
 function asNonEmptyString(value: unknown): string | undefined {

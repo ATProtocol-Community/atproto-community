@@ -1,6 +1,7 @@
 ---
 import type { ShareCandidateList } from '../../lib/community/share-candidates';
 import { actions } from 'astro:actions';
+import SafeExternalLink from '../SafeExternalLink.astro';
 import ShareableContentIcon from './ShareableContentIcon.astro';
 
 interface Props {
@@ -77,10 +78,9 @@ function formatDate(date: Date | undefined): string {
           <li class="share-row" data-share-row data-kind={candidate.kind} hidden={index >= initialVisible}>
             <ShareableContentIcon kind={candidate.kind} />
             <div class="share-row__main">
-              <a class="share-row__title" href={rowUrl} rel="noopener noreferrer" target="_blank">
+              <SafeExternalLink href={rowUrl} class="share-row__title" announceNewTab>
                 {candidate.title}
-                <span class="visually-hidden"> (opens in new tab)</span>
-              </a>
+              </SafeExternalLink>
               <p class="share-row__meta">
                 {candidate.date ? (
                   <time datetime={candidate.date.toISOString()}>
@@ -94,15 +94,14 @@ function formatDate(date: Date | undefined): string {
               </p>
             </div>
             <div class="share-row__actions">
-              <a
-                class="share-row__preview"
+              <SafeExternalLink
                 href={rowUrl}
-                rel="noopener noreferrer"
-                target="_blank"
+                class="share-row__preview"
+                fallbackTag="none"
+                announceNewTab
               >
                 View
-                <span class="visually-hidden"> (opens in new tab)</span>
-              </a>
+              </SafeExternalLink>
               <form method="POST" action={actions.shareAtmosphereContent}>
                 <input type="hidden" name="sourceRepo" value={repo} />
                 <input type="hidden" name="candidateUri" value={candidate.uri} />
