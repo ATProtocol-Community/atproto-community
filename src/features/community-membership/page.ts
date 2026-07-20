@@ -1,5 +1,5 @@
 import { getAtmosphereCommunityDid } from "../../lib/community/atmosphere";
-import { resolveHandleToDid } from "../../lib/community/identity";
+import { resolveHandleToDid } from "../../lib/community/repo";
 import { getMembership } from "../../lib/opensocial/membership";
 import { pickFirstActionResult } from "../../lib/action-result";
 import { getJoinNotice, type JoinNotice, type JoinOutcomeCode } from "./notice";
@@ -102,7 +102,9 @@ export async function getCommunityListingMembershipState(
     communities
       .filter((community) => community.isOpenSocialCommunity)
       .map(async (community) => {
-        const communityDid = await resolveHandleToDid(community.handle);
+        const communityDid = await resolveHandleToDid({
+          handleOrDid: community.handle,
+        });
         const membership = await getMembership({
           communityDid,
           userDid: loggedInUser.did,

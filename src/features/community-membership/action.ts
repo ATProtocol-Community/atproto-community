@@ -2,7 +2,7 @@ import { ActionError, defineAction } from "astro:actions";
 import { z } from "astro/zod";
 
 import { getAtmosphereCommunityDid } from "../../lib/community/atmosphere";
-import { resolveHandleToDid } from "../../lib/community/identity";
+import { resolveHandleToDid } from "../../lib/community/repo";
 import { OpenSocialCommunityError } from "../../lib/opensocial/client";
 import { isPermissionError } from "../../lib/action-result";
 import { runJoin, runLeave } from "./mutations";
@@ -49,7 +49,7 @@ export const membershipActions = {
 
       let communityDid: string;
       try {
-        communityDid = await resolveHandleToDid(input.handle);
+        communityDid = await resolveHandleToDid({ handleOrDid: input.handle });
       } catch {
         throw new ActionError({
           code: "INTERNAL_SERVER_ERROR",
@@ -83,7 +83,7 @@ export const membershipActions = {
 
       let communityDid: string;
       try {
-        communityDid = await resolveHandleToDid(input.handle);
+        communityDid = await resolveHandleToDid({ handleOrDid: input.handle });
       } catch {
         throw new ActionError({
           code: "INTERNAL_SERVER_ERROR",

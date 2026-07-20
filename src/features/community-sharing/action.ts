@@ -3,10 +3,8 @@ import { z } from "astro/zod";
 import { AtUri } from "@atproto/api";
 
 import { getAtmosphereCommunityDid } from "../../lib/community/atmosphere";
-import {
-  getRepoRecordByUri,
-  getShareCandidateByUri,
-} from "../../lib/community/share-candidates";
+import { getShareCandidateByUri } from "../../lib/community/share-candidates";
+import { getRepoRecordByUri } from "../../lib/community/repo";
 import {
   parseSharedDocumentRef,
   type SharedDocumentRef,

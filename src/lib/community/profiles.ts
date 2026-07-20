@@ -1,6 +1,6 @@
 import { Agent } from '@atproto/api';
 import type { AtProfile } from './types.js';
-import { resolveHandleToDid } from './identity.js';
+import { resolveHandleToDid } from './repo.js';
 
 const PUBLIC_API = 'https://public.api.bsky.app';
 const PROFILE_CACHE_TTL_MS = 2 * 60 * 60 * 1000;
@@ -56,7 +56,7 @@ function cacheSourceProfile(
 async function fetchProfile(handleOrDid: string): Promise<AtProfile> {
   let did: string;
   try {
-    did = await resolveHandleToDid(handleOrDid);
+    did = await resolveHandleToDid({ handleOrDid });
   } catch {
     did = handleOrDid;
   }
@@ -93,7 +93,7 @@ export async function getProfile(handleOrDid: string): Promise<AtProfile> {
 
   let did: string;
   try {
-    did = await resolveHandleToDid(handleOrDid);
+    did = await resolveHandleToDid({ handleOrDid });
   } catch {
     did = handleOrDid;
   }

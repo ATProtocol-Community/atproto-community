@@ -5,8 +5,6 @@ import type {
 import { z } from 'astro/zod';
 import { remark } from 'remark';
 import { toString as mdastToString } from 'mdast-util-to-string';
-import { AtUri } from '@atproto/api';
-import { DidResolver, MemoryCache, getPds } from '@atproto/identity';
 import type { CommunityEvent } from './community/types.js';
 import {
   getProfile,
@@ -20,9 +18,7 @@ import {
   classifySharedContent,
 } from './community/index.js';
 import type { SharedEventRef } from './community/index.js';
-
-const cidDidCache = new MemoryCache();
-const cidDidResolver = new DidResolver({ didCache: cidDidCache });
+import { getRepoRecordByUri } from './community/repo.js';
 
 // The grouped event transformer needs a CID for reshared events so users can RSVP.
 // The loader's fetchRecord doesn't surface CIDs from external repos, so we resolve
@@ -30,15 +26,7 @@ const cidDidResolver = new DidResolver({ didCache: cidDidCache });
 // just means RSVP stays disabled for that card.
 async function fetchCanonicalCid(atUri: string): Promise<string | undefined> {
   try {
-    const parsed = new AtUri(atUri);
-    const doc = await cidDidResolver.resolve(parsed.host);
-    const pds = doc ? getPds(doc) : undefined;
-    if (!pds) return undefined;
-    const url = `${pds}/xrpc/com.atproto.repo.getRecord?repo=${encodeURIComponent(parsed.host)}&collection=${encodeURIComponent(parsed.collection)}&rkey=${encodeURIComponent(parsed.rkey)}`;
-    const res = await fetch(url);
-    if (!res.ok) return undefined;
-    const body = (await res.json()) as { cid?: string };
-    return body.cid;
+    return (await getRepoRecordByUri(atUri))?.cid;
   } catch {
     return undefined;
   }

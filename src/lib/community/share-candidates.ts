@@ -1,16 +1,18 @@
-import { AtpAgent, AtUri } from '@atproto/api';
-import { DidResolver, MemoryCache, getPds } from '@atproto/identity';
+import { Agent, AtUri } from '@atproto/api';
 import { isValidAtUri, type AtUriString } from '@atproto/syntax';
 
 import { parseBlogPostRef, resolveStandardDocumentUrl } from './shared-content.js';
 import { parseEventRecord } from './events.js';
-import { resolveHandleToDid } from './identity.js';
+import {
+  getRepoRecordByUri,
+  openRepo,
+  resolveHandleToDid,
+  type RepoRecord,
+} from './repo.js';
 
 const EVENT_COLLECTION = 'community.lexicon.calendar.event';
 const DOCUMENT_COLLECTION = 'site.standard.document';
-
-const didCache = new MemoryCache();
-const didResolver = new DidResolver({ didCache });
+const MAX_SHARE_CANDIDATE_PAGES = 10;
 
 export interface ShareCandidate {
   kind: 'event' | 'document';
@@ -31,41 +33,13 @@ export interface ShareCandidateList {
   documents: ShareCandidate[];
 }
 
-interface RepoRecord {
-  uri: string;
-  cid?: string;
-  value: unknown;
-}
-
-export async function getRepoRecordByUri(uri: string): Promise<RepoRecord | null> {
-  let parsed: AtUri;
-  try {
-    parsed = new AtUri(uri);
-  } catch {
-    return null;
-  }
-
-  const agent = await createRepoAgent(parsed.host);
-  const response = await agent.com.atproto.repo.getRecord({
-    repo: parsed.host,
-    collection: parsed.collection,
-    rkey: parsed.rkey,
-  });
-  return {
-    uri: response.data.uri,
-    cid: response.data.cid,
-    value: response.data.value,
-  };
-}
-
 async function fetchRecordValue(atUri: string): Promise<Record<string, unknown> | null> {
   const record = await getRepoRecordByUri(atUri);
   return record && isRecordValue(record.value) ? record.value : null;
 }
 
 export async function getShareCandidates(repoHandleOrDid: string): Promise<ShareCandidateList> {
-  const did = await resolveHandleToDid(repoHandleOrDid);
-  const agent = await createRepoAgent(did);
+  const { agent, did } = await openRepo({ handleOrDid: repoHandleOrDid });
 
   const [eventRecords, documentRecords] = await Promise.all([
     listRecords(agent, did, EVENT_COLLECTION),
@@ -88,7 +62,7 @@ export async function getShareCandidateByUri(
   repoHandleOrDid: string,
   uri: string,
 ): Promise<ShareCandidate | null> {
-  const did = await resolveHandleToDid(repoHandleOrDid);
+  const did = await resolveHandleToDid({ handleOrDid: repoHandleOrDid });
   let parsed: AtUri;
   try {
     parsed = new AtUri(uri);
@@ -109,22 +83,17 @@ export async function getShareCandidateByUri(
     : toDocumentCandidate(record, did);
 }
 
-async function createRepoAgent(did: string): Promise<AtpAgent> {
-  const doc = await didResolver.resolve(did);
-  const pds = doc ? getPds(doc) : undefined;
-  if (!pds) throw new Error(`Could not resolve PDS for ${did}`);
-  return new AtpAgent({ service: pds });
-}
-
 async function listRecords(
-  agent: AtpAgent,
+  agent: Agent,
   repo: string,
   collection: string,
 ): Promise<RepoRecord[]> {
   const records: RepoRecord[] = [];
+  let pageCount = 0;
   let cursor: string | undefined;
 
   do {
+    pageCount += 1;
     const response = await agent.com.atproto.repo.listRecords({
       repo,
       collection,
@@ -133,7 +102,13 @@ async function listRecords(
     });
     records.push(...response.data.records);
     cursor = response.data.cursor;
-  } while (cursor);
+  } while (cursor && pageCount < MAX_SHARE_CANDIDATE_PAGES);
+
+  if (cursor) {
+    console.warn(
+      `Stopped listing ${collection} for ${repo} after ${MAX_SHARE_CANDIDATE_PAGES} pages`,
+    );
+  }
 
   return records;
 }

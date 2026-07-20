@@ -1,7 +1,7 @@
-import { resolveHandleToDid } from "./identity";
+import { resolveHandleToDid } from "./repo";
 
 export const ATMOSPHERE_COMMUNITY_HANDLE = "atmosphere.community";
 
 export function getAtmosphereCommunityDid(): Promise<string> {
-  return resolveHandleToDid(ATMOSPHERE_COMMUNITY_HANDLE);
+  return resolveHandleToDid({ handleOrDid: ATMOSPHERE_COMMUNITY_HANDLE });
 }
