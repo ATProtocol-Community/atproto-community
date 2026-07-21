@@ -9,8 +9,8 @@ import { signRequest } from "../cmid-signing/index.js";
 export function createSignedLexClient(opts: {
   /** Service origin for XRPC calls, for example `https://api.example.com`. */
   service: string | URL;
-  /** Registered app id, used as the `keyid` in HTTP signatures. */
-  appId: string;
+  /** OpenSocial client identifier serialized as `keyid` in HTTP signatures. */
+  keyId: string;
   /** Override for tests. Defaults to global `fetch`. */
   fetchImpl?: typeof fetch;
   /** Defaults to false so callers can start without generated schemas. */
@@ -25,7 +25,7 @@ export function createSignedLexClient(opts: {
           method: request.method,
           url: request.url,
           body: request.body,
-          appId: opts.appId,
+          keyId: opts.keyId,
         });
       },
     }),

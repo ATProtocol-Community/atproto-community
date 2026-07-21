@@ -1,4 +1,5 @@
 import { XrpcError, isDidString } from "@atproto/lex";
+import { getSecret } from "astro:env/server";
 
 import { createSignedLexClient } from "./xrpc.js";
 
@@ -17,16 +18,18 @@ export class OpenSocialCommunityError extends Error {
 }
 
 export function createOpenSocialClient() {
-  const appId = import.meta.env.OPENSOCIAL_APP_ID;
-  if (!appId || appId.length === 0) {
+  const keyId =
+    getSecret("OPENSOCIAL_SIGNATURE_KEY_ID") ||
+    getSecret("OPENSOCIAL_APP_ID");
+  if (!keyId) {
     throw new Error(
-      "OPENSOCIAL_APP_ID is not set; cannot sign opensocial requests",
+      "OPENSOCIAL_SIGNATURE_KEY_ID is not set; cannot sign OpenSocial requests",
     );
   }
 
   return createSignedLexClient({
-    service: import.meta.env.OPENSOCIAL_SERVICE || DEFAULT_SERVICE,
-    appId,
+    service: getSecret("OPENSOCIAL_SERVICE") || DEFAULT_SERVICE,
+    keyId,
   });
 }
 

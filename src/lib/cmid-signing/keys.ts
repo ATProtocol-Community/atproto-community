@@ -6,16 +6,20 @@ import {
   type KeyObject,
 } from "node:crypto";
 
-const DEFAULT_KID = "opensocial-cimd-1";
-
-function loadPrivatePem(): string {
-  const b64 = import.meta.env.OPENSOCIAL_CIMD_PRIVATE_KEY_BASE64;
-  if (b64 && b64.length > 0) {
-    return Buffer.from(b64, "base64").toString("utf-8");
+export function parsePrivateKey({
+  base64,
+  pem,
+}: {
+  base64?: string;
+  pem?: string;
+}): KeyObject {
+  if (base64 && base64.length > 0) {
+    return createPrivateKey(Buffer.from(base64, "base64").toString("utf-8"));
   }
-  const pem = import.meta.env.OPENSOCIAL_CIMD_PRIVATE_KEY_PEM;
   if (pem && pem.length > 0) {
-    return pem.includes("\\n") ? pem.replaceAll("\\n", "\n") : pem;
+    return createPrivateKey(
+      pem.includes("\\n") ? pem.replaceAll("\\n", "\n") : pem,
+    );
   }
   throw new Error(
     "OPENSOCIAL_CIMD_PRIVATE_KEY_BASE64 (or _PEM) not set. " +
@@ -23,44 +27,40 @@ function loadPrivatePem(): string {
   );
 }
 
-let cachedPrivate: KeyObject | null = null;
-function getPrivateKey(): KeyObject {
-  if (!cachedPrivate) cachedPrivate = createPrivateKey(loadPrivatePem());
-  return cachedPrivate;
-}
-
-let cachedPublicJwk: {
+export function createPublicJwk({
+  privateKey,
+  kid,
+}: {
+  privateKey: KeyObject;
+  kid: string;
+}): {
   kty: string;
   crv?: string;
   x?: string;
   kid: string;
   use: "sig";
-} | null = null;
-export function getPublicJwk() {
-  if (cachedPublicJwk) return cachedPublicJwk;
-  const pub = createPublicKey(getPrivateKey());
+} {
+  const pub = createPublicKey(privateKey);
   const jwk = pub.export({ format: "jwk" }) as {
     kty: string;
     crv?: string;
     x?: string;
   };
-  cachedPublicJwk = {
+  return {
     ...jwk,
-    kid: import.meta.env.OPENSOCIAL_CIMD_KID || DEFAULT_KID,
+    kid,
     use: "sig",
   };
-  return cachedPublicJwk;
 }
 
 export function signRequest(opts: {
   method: string;
   url: string;
   body?: string | null;
-  appId: string;
+  keyId: string;
+  privateKey: KeyObject;
   /** Override clock for tests. Seconds since epoch. */
   nowSeconds?: number;
-  /** Override the private key for tests. Defaults to getPrivateKey(). */
-  privateKey?: KeyObject;
 }) {
   const method = opts.method.toUpperCase();
   const created = opts.nowSeconds ?? Math.floor(Date.now() / 1000);
@@ -82,13 +82,13 @@ export function signRequest(opts: {
     lines.push(`"content-digest": ${digestValue}`);
   }
 
-  const signatureParams = `(${components.join(" ")});created=${created};keyid="${opts.appId}"`;
+  const signatureParams = `(${components.join(" ")});created=${created};keyid="${opts.keyId}"`;
   lines.push(`"@signature-params": ${signatureParams}`);
 
   const signature = cryptoSign(
     null,
     Buffer.from(lines.join("\n"), "utf-8"),
-    opts.privateKey ?? getPrivateKey(),
+    opts.privateKey,
   );
 
   return {
