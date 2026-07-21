@@ -16,6 +16,14 @@ import {
   transformEventGroup,
   type LoaderArgs,
 } from "./lib/live-handlers";
+import {
+  createDiscourseActivityLoader,
+  discourseActivityTopicSchema,
+} from "./lib/discourse-activity";
+import {
+  createAvatarFallback,
+  hueFromString,
+} from "./lib/avatar-fallback";
 
 interface CommunityDefinition {
   name: string;
@@ -56,30 +64,9 @@ function avatarInitials(handle: string): string {
     .toUpperCase();
 }
 function avatarColor(handle: string): string {
-  let hash = 0;
-  for (const ch of handle) hash = ((hash << 5) - hash + ch.charCodeAt(0)) | 0;
-  const hue = ((hash % 360) + 360) % 360;
-  return `oklch(50% 0.13 ${hue})`;
+  return `oklch(50% 0.13 ${hueFromString(handle)})`;
 }
 
-// Per-author avatar fallback derivation for the feed: takes a label that may be
-// either a displayName ("Jane Doe" → "JD") or a handle ("@nyc.atproto.camp" → "NA").
-// Splits on the separators commonly found in handles so the initials track the
-// distinctive parts of the label.
-function authorInitials(label: string): string {
-  return label
-    .replace(/^@/, "")
-    .split(/[.\-_ ]/)
-    .slice(0, 2)
-    .map((s) => s[0]?.toUpperCase() ?? "")
-    .join("");
-}
-function authorColor(name: string): string {
-  let hash = 0;
-  for (const ch of name) hash = ((hash << 5) - hash + ch.charCodeAt(0)) | 0;
-  const hue = ((hash % 360) + 360) % 360;
-  return `oklch(55% 0.12 ${hue})`;
-}
 function enrichAuthor(author: {
   did: string;
   handle: string;
@@ -93,7 +80,7 @@ function enrichAuthor(author: {
     displayName: author.displayName,
     avatar: author.avatar
       ? { url: author.avatar }
-      : { initials: authorInitials(label), color: authorColor(label) },
+      : createAvatarFallback({ label }),
   };
 }
 
@@ -118,9 +105,19 @@ const communityAccounts = [
   "atmosphere.community",
   ...communityDefinitions.map((community) => community.handle),
 ];
-const LIVE_FEED_EVENTS_TTL_MS = 1000 * 60 * 5;
+const ACTIVITY_CACHE_TTL_MS = 1000 * 60 * 5;
 const LIMIT_RECORDS_PER_SOURCE = 200;
 const MAX_PAGES_PER_SOURCE = 2;
+
+const forum = defineLiveCollection({
+  loader: createDiscourseActivityLoader({
+    baseUrl: "https://discourse.atprotocol.community",
+    source: { type: "latest" },
+    limit: 10,
+    cacheTtlMs: ACTIVITY_CACHE_TTL_MS,
+  }),
+  schema: discourseActivityTopicSchema,
+});
 
 // Warm the source-profile cache once at server boot. Per-record transformers
 // in lib/live-handlers (e.g. site.standard.document → getProfile('atmosphere.community'),
@@ -131,7 +128,7 @@ await prefetchSourceProfiles(communityAccounts);
 
 const feed = defineAtProtoLiveCollection({
   outputSchema: feedOutputSchema,
-  cacheTtl: LIVE_FEED_EVENTS_TTL_MS,
+  cacheTtl: ACTIVITY_CACHE_TTL_MS,
   sources: [
     // The site's own curated posts use site.standard.document; community accounts share
     // links via community.opensocial.sharedContent. Both feed into the same output schema
@@ -170,7 +167,7 @@ const feed = defineAtProtoLiveCollection({
 
 const events = defineAtProtoLiveCollection({
   outputSchema: eventsOutputSchema,
-  cacheTtl: LIVE_FEED_EVENTS_TTL_MS,
+  cacheTtl: ACTIVITY_CACHE_TTL_MS,
   sources: [
     // Two paths into the events list:
     //   1. Native calendar records authored by the community itself.
@@ -281,4 +278,4 @@ const communities = defineLiveCollection({
   }),
 });
 
-export const collections = { feed, events, communities };
+export const collections = { feed, events, communities, forum };

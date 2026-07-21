@@ -7,8 +7,10 @@ import PostCard from "../components/content/PostCard.astro";
 import EventCard from "../components/events/EventCard.astro";
 import CommunityCard from "../components/communities/CommunityCard.astro";
 import GetInvolved from "../components/layout/GetInvolved.astro";
+import ForumActivityItem from "../components/content/ForumActivityItem.astro";
 import { getLiveCollection } from "astro:content";
 import { dedupeFeedEntries } from "../lib/community/dedup-feed";
+
 const communitiesResult = await getLiveCollection("communities");
 const communities = (communitiesResult.entries ?? []).map(
   (entry) => entry.data,
@@ -31,6 +33,9 @@ const events = (eventsResult.entries ?? [])
   .filter((event) => !event.isPast)
   .sort((a, b) => a.startsAt.getTime() - b.startsAt.getTime())
   .slice(0, 4);
+
+const forumResult = await getLiveCollection("forum");
+const forumTopics = (forumResult.entries ?? []).map((entry) => entry.data);
 ---
 
 <Base title="atmosphere.community">
@@ -59,6 +64,44 @@ const events = (eventsResult.entries ?? [])
           )
         }
       </div>
+    </div>
+  </section>
+
+  <!-- Recent forum activity -->
+  <section class="section" aria-labelledby="forum-heading">
+    <div class="container">
+      <div class="section-header forum-header">
+        <div>
+          <h2 id="forum-heading" class="section__title">On the forum</h2>
+          <p class="section__subtitle">
+            The latest active conversations from the ATProtocol Community.
+          </p>
+        </div>
+        <a
+          href="https://discourse.atprotocol.community/latest"
+          class="section__more"
+          rel="noopener noreferrer"
+          target="_blank">Visit Discourse →</a
+        >
+      </div>
+      {
+        forumTopics.length > 0 ? (
+          <ol class="forum-list" role="list">
+            {forumTopics.map((topic) => <ForumActivityItem {...topic} />)}
+          </ol>
+        ) : (
+          <p class="empty-state">
+            Forum activity is unavailable right now. You can still{" "}
+            <a
+              href="https://discourse.atprotocol.community/latest"
+              rel="noopener noreferrer"
+              target="_blank"
+            >
+              visit Discourse
+            </a>.
+          </p>
+        )
+      }
     </div>
   </section>
 
@@ -120,6 +163,17 @@ const events = (eventsResult.entries ?? [])
     gap: var(--space-md);
   }
 
+  .forum-header {
+    align-items: flex-end;
+  }
+
+  .forum-list {
+    display: grid;
+    grid-template-columns: repeat(2, minmax(0, 1fr));
+    column-gap: var(--space-2xl);
+    list-style: none;
+  }
+
   .community-row {
     display: flex;
     flex-wrap: wrap;
@@ -133,5 +187,18 @@ const events = (eventsResult.entries ?? [])
     background: var(--muted);
     border-radius: var(--radius-md);
     font-size: var(--text-sm);
+  }
+
+  @media (max-width: 760px) {
+    .forum-list {
+      grid-template-columns: minmax(0, 1fr);
+    }
+  }
+
+  @media (max-width: 520px) {
+    .forum-header {
+      align-items: flex-start;
+      flex-direction: column;
+    }
   }
 </style>

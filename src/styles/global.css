@@ -117,7 +117,7 @@ a:focus-visible {
   border-radius: 2px;
 }
 
-a[target="_blank"]:not(.btn):not(.hero-secondary):not(.post-card__link):not(.community-pill--link):not(.highlight-card):not(.event-card__details)::after {
+a[target="_blank"]:not(.btn):not(.hero-secondary):not(.post-card__link):not(.community-pill--link):not(.highlight-card):not(.event-card__details):not([data-external-icon="hidden"])::after {
   content: "";
   display: inline-block;
   width: 0.95em;
