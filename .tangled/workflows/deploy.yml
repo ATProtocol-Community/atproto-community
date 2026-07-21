@@ -13,6 +13,9 @@ steps:
   - name: install dependencies
     command: npm ci
 
+  - name: verify site
+    command: npm run verify
+
   - name: build site
     command: npm run build
 

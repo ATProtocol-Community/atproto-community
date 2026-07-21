@@ -8,6 +8,10 @@
   "scripts": {
     "dev": "astro dev",
     "build": "astro build",
+    "check:astro": "astro check",
+    "check:types": "tsc --noEmit",
+    "test": "tsx --test 'src/**/*.test.ts'",
+    "verify": "npm run check:astro && npm run check:types && npm test",
     "preview": "astro preview",
     "start": "node ./dist/server/entry.mjs",
     "astro": "astro"
@@ -30,6 +34,7 @@
   },
   "devDependencies": {
     "@types/js-yaml": "^4.0.9",
-    "@types/node": "^25.8.0"
+    "@types/node": "^25.8.0",
+    "tsx": "^4.23.1"
   }
 }
