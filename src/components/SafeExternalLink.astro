@@ -18,6 +18,7 @@ const {
   fallbackTag = "span",
   announceNewTab = false,
   class: className,
+  ...attributes
 } = Astro.props;
 
 const safeHref = toSafeExternalHref(href, { fallback: fallbackHref });
@@ -29,7 +30,7 @@ const linkAttributes = safeHref
 
 {
   Tag && (
-    <Tag class={className} {...linkAttributes}>
+    <Tag class={className} {...attributes} {...linkAttributes}>
       <slot />
       {safeHref && announceNewTab && (
         <span class="visually-hidden"> (opens in new tab)</span>
