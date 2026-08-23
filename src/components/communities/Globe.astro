@@ -1,4 +1,35 @@
-<div id="globe"></div>
+---
+type AvatarSource = { url: string } | { initials: string; color: string };
+
+interface Community {
+  name: string;
+  location: string;
+  coordinates?: [number, number] | null;
+  avatar: AvatarSource;
+  bluesky?: string;
+  website?: string;
+}
+
+interface Props {
+  communities: Community[];
+}
+
+const { communities } = Astro.props;
+const markersJson = JSON.stringify(
+  communities
+    .filter((c) => c.coordinates != null)
+    .map((c) => ({
+      name: c.name,
+      location: c.location,
+      coordinates: c.coordinates,
+      avatar: c.avatar,
+      href: c.bluesky ?? c.website ?? null,
+      isBluesky: Boolean(c.bluesky),
+    }))
+);
+---
+
+<div id="globe" data-markers={markersJson}></div>
 
 <style>
   #globe {
@@ -9,14 +40,71 @@
     border-radius: var(--radius-lg);
     overflow: hidden;
   }
+
+  #globe :global(.marker-root) {
+    width: 0;
+    height: 0;
+  }
+
+  #globe :global(.community-marker) {
+    position: absolute;
+    left: 0;
+    top: 0;
+    display: flex;
+    align-items: center;
+    background: var(--card);
+    border: 1px solid var(--card-border);
+    border-radius: var(--radius-pill);
+    padding: 2px;
+    box-shadow: var(--elevation-low);
+    color: inherit;
+    text-decoration: none;
+    transform: translate(-17px, -17px);
+  }
+
+  #globe :global(.community-marker__avatar) {
+    flex-shrink: 0;
+    width: 28px;
+    height: 28px;
+    border-radius: 50%;
+    object-fit: cover;
+  }
+
+  #globe :global(.community-marker__avatar--initials) {
+    display: flex;
+    align-items: center;
+    justify-content: center;
+    color: oklch(98% 0 0);
+    font-size: 8px;
+    font-weight: 700;
+    font-family: var(--font-body, sans-serif);
+    letter-spacing: 0.02em;
+  }
+
+  #globe :global(.community-marker__details) {
+    display: none;
+  }
 </style>
 
 <script>
   import "maplibre-gl/dist/maplibre-gl.css";
-  import { Map, setWorkerUrl } from "maplibre-gl";
+  import { Map, Marker, setWorkerUrl } from "maplibre-gl";
   import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
 
   setWorkerUrl(workerUrl);
+
+  type Avatar = { url: string } | { initials: string; color: string };
+  type CommunityMarker = {
+    name: string;
+    location: string;
+    coordinates: [number, number];
+    avatar: Avatar;
+    href: string | null;
+    isBluesky: boolean;
+  };
+
+  const globeEl = document.getElementById("globe")!;
+  const markers: CommunityMarker[] = JSON.parse(globeEl.dataset.markers ?? "[]");
 
   const map = new Map({
     container: "globe",
@@ -25,7 +113,65 @@
     zoom: 1.5,
   });
 
+  // Same glyph as icons/BlueskyIcon.astro, inlined for the DOM-built markers.
+  const BLUESKY_ICON = `<svg width="16" height="14" viewBox="0 0 568 501" fill="currentColor" aria-hidden="true"><path d="M123.121 33.664C188.241 82.553 258.281 181.68 284 234.873c25.719-53.192 95.759-152.32 160.879-201.21C491.866-1.611 568-28.906 568 49.845c0 17.712-10.155 148.79-16.111 170.07-20.703 73.984-96.144 92.854-163.25 81.433 117.3 19.964 147.14 86.907 82.697 153.834-122.178 126.907-175.736-31.784-189.577-72.58-1.786-5.271-2.62-7.721-2.756-5.636-.14-2.085-.97.365-2.757 5.636-13.84 40.796-67.399 199.487-189.577 72.58C22.56 388.152 52.4 321.209 169.7 301.345c-67.106 11.42-142.547-7.45-163.25-81.433C.488 198.634-9.667 67.556-9.667 49.845c0-78.75 76.134-51.456 132.788-16.181z"/></svg>`;
+
+  const ESCAPES: Record<string, string> = { "&": "&amp;", "<": "&lt;", ">": "&gt;", '"': "&quot;" };
+
+  function esc(value: string): string {
+    return value.replace(/[&<>"]/g, (c) => ESCAPES[c]);
+  }
+
+  function buildMarkerEl(community: CommunityMarker): HTMLElement {
+    const outer = document.createElement("div");
+    outer.className = "marker-root";
+
+    const hasLink = Boolean(community.href);
+    const pill = document.createElement(hasLink ? "a" : "div");
+    pill.className = "community-marker";
+
+    if (hasLink) {
+      const anchor = pill as HTMLAnchorElement;
+      anchor.href = community.href!;
+      anchor.target = "_blank";
+      anchor.rel = "noopener noreferrer";
+      anchor.setAttribute(
+        "aria-label",
+        `${community.name}${community.isBluesky ? " on Bluesky" : ""}`,
+      );
+    } else {
+      pill.setAttribute("aria-hidden", "true");
+    }
+
+    const avatar =
+      "url" in community.avatar
+        ? `<img class="community-marker__avatar" src="${esc(community.avatar.url)}" alt="" loading="lazy" decoding="async">`
+        : `<span class="community-marker__avatar community-marker__avatar--initials" style="background: ${esc(community.avatar.color)}">${esc(community.avatar.initials)}</span>`;
+
+    pill.innerHTML = `
+      ${avatar}
+      <span class="community-marker__details" aria-hidden="true">
+        <span class="community-marker__text">
+          <span class="community-marker__name">${esc(community.name)}</span>
+          <span class="community-marker__location">${esc(community.location)}</span>
+        </span>
+        ${community.isBluesky ? `<span class="community-marker__icon">${BLUESKY_ICON}</span>` : ""}
+      </span>`;
+
+    outer.append(pill);
+    return outer;
+  }
+
+  function addMarkers() {
+    for (const community of markers) {
+      new Marker({ element: buildMarkerEl(community), anchor: "center" })
+        .setLngLat([community.coordinates[1], community.coordinates[0]])
+        .addTo(map);
+    }
+  }
+
   map.on("style.load", () => {
     map.setProjection({ type: "globe" });
+    addMarkers();
   });
 </script>

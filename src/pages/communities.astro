@@ -35,7 +35,7 @@ const regions = [...grouped.keys()].sort(
         AT Protocol communities around the world. Each group is run independently by local organizers.
         Find one near you or <a href="https://bsky.app/profile/ngerakines.me" rel="noopener noreferrer" target="_blank">start your own</a>.
       </p>
-      <Globe />
+      <Globe communities={communities} />
       {regions.map((region) => (
         <section class="region-group">
           <h2 class="region-heading">{region}</h2>
