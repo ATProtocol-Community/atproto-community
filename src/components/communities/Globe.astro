@@ -50,6 +50,7 @@ const markersJson = JSON.stringify(
     position: absolute;
     left: 0;
     top: 0;
+    width: max-content;
     display: flex;
     align-items: center;
     background: var(--card);
@@ -60,6 +61,24 @@ const markersJson = JSON.stringify(
     color: inherit;
     text-decoration: none;
     transform: translate(-17px, -17px);
+    transition: padding 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+      border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  /* Expand the touch target without growing the visible marker. */
+  #globe :global(.community-marker::before) {
+    content: "";
+    position: absolute;
+    inset: -8px;
+  }
+
+  #globe :global(.community-marker--link) {
+    cursor: pointer;
+  }
+
+  #globe :global(.community-marker:focus-visible) {
+    outline: 2px solid var(--primary);
+    outline-offset: 2px;
   }
 
   #globe :global(.community-marker__avatar) {
@@ -81,8 +100,67 @@ const markersJson = JSON.stringify(
     letter-spacing: 0.02em;
   }
 
+  /* Collapsed: zero width, fully clipped. Open: max-width slides the text
+     and icon out from behind the avatar. */
   #globe :global(.community-marker__details) {
-    display: none;
+    display: flex;
+    align-items: center;
+    gap: var(--space-sm);
+    max-width: 0;
+    overflow: hidden;
+    opacity: 0;
+    transition: max-width 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 0.15s ease;
+  }
+
+  #globe :global(.community-marker--open) {
+    padding-right: var(--space-md);
+    box-shadow: var(--elevation-regular);
+  }
+
+  #globe :global(.community-marker--link.community-marker--open) {
+    border-color: var(--primary);
+  }
+
+  #globe :global(.community-marker--open .community-marker__details) {
+    max-width: var(--details-w, 260px);
+    opacity: 1;
+    transition: max-width 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 0.25s ease 0.08s;
+  }
+
+  #globe :global(.community-marker__text) {
+    display: flex;
+    flex-direction: column;
+    padding-left: var(--space-sm);
+  }
+
+  #globe :global(.community-marker__name) {
+    font-size: var(--text-xs);
+    font-weight: 600;
+    color: var(--card-foreground);
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  #globe :global(.community-marker__location) {
+    font-size: 9px;
+    color: var(--foreground-muted);
+    line-height: 1.2;
+    white-space: nowrap;
+  }
+
+  #globe :global(.community-marker__icon) {
+    flex-shrink: 0;
+    color: var(--primary);
+    display: flex;
+  }
+
+  @media (prefers-reduced-motion: reduce) {
+    #globe :global(.community-marker),
+    #globe :global(.community-marker__details) {
+      transition: opacity 0.2s;
+    }
   }
 </style>
 
@@ -122,13 +200,31 @@ const markersJson = JSON.stringify(
     return value.replace(/[&<>"]/g, (c) => ESCAPES[c]);
   }
 
-  function buildMarkerEl(community: CommunityMarker): HTMLElement {
+  const canHover = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+
+  // ---------------------------------------------------------------------
+  // Marker construction & interaction. Hover opens on mouse devices; on
+  // touch, the first tap opens and the second follows the link. Only one
+  // marker is ever open at a time.
+  // ---------------------------------------------------------------------
+
+  type Entry = { outer: HTMLElement; pill: HTMLElement };
+  let openEntry: Entry | null = null;
+
+  function setOpen(entry: Entry, open: boolean) {
+    if (open && openEntry && openEntry !== entry) setOpen(openEntry, false);
+    openEntry = open ? entry : openEntry === entry ? null : openEntry;
+    entry.pill.classList.toggle("community-marker--open", open);
+    entry.outer.style.zIndex = open ? "10" : "";
+  }
+
+  function buildEntry(community: CommunityMarker): Entry {
     const outer = document.createElement("div");
     outer.className = "marker-root";
 
     const hasLink = Boolean(community.href);
     const pill = document.createElement(hasLink ? "a" : "div");
-    pill.className = "community-marker";
+    pill.className = hasLink ? "community-marker community-marker--link" : "community-marker";
 
     if (hasLink) {
       const anchor = pill as HTMLAnchorElement;
@@ -159,16 +255,37 @@ const markersJson = JSON.stringify(
       </span>`;
 
     outer.append(pill);
-    return outer;
+
+    const entry: Entry = { outer, pill };
+
+    if (canHover) {
+      pill.addEventListener("mouseenter", () => setOpen(entry, true));
+      pill.addEventListener("mouseleave", () => setOpen(entry, false));
+      pill.addEventListener("focus", () => setOpen(entry, true));
+      pill.addEventListener("blur", () => setOpen(entry, false));
+    } else {
+      pill.addEventListener("click", (e) => {
+        if (pill.classList.contains("community-marker--open")) return;
+        e.preventDefault();
+        e.stopPropagation();
+        setOpen(entry, true);
+      });
+    }
+
+    return entry;
   }
 
   function addMarkers() {
     for (const community of markers) {
-      new Marker({ element: buildMarkerEl(community), anchor: "center" })
+      const entry = buildEntry(community);
+      new Marker({ element: entry.outer, anchor: "center" })
         .setLngLat([community.coordinates[1], community.coordinates[0]])
         .addTo(map);
     }
   }
+
+  // Tapping anywhere else on the map closes the opened marker.
+  if (!canHover) map.on("click", () => openEntry && setOpen(openEntry, false));
 
   map.on("style.load", () => {
     map.setProjection({ type: "globe" });
