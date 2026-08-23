@@ -41,11 +41,23 @@ const markersJson = JSON.stringify(
     overflow: hidden;
   }
 
+  /* Each MapLibre marker element is a zero-size root pinned exactly on the
+     community's lat/lng, holding the pill head. (The anchor dots live in
+     a map circle layer instead, so they render inside the canvas —
+     underneath every DOM marker.) The layout engine in the script
+     displaces the head via --dx/--dy so it can dodge other markers while
+     staying anchored to its location. Selectors are nested under #globe
+     to win over maplibre-gl's own .maplibregl-marker rules regardless of
+     CSS order. */
   #globe :global(.marker-root) {
     width: 0;
     height: 0;
   }
 
+  /* The pill head — same look as CommunityCard, collapsed to its avatar.
+     The base transform keeps the avatar's center on the (--dx, --dy)
+     placement point so the card can slide open rightward without the
+     avatar moving. */
   #globe :global(.community-marker) {
     position: absolute;
     left: 0;
@@ -60,9 +72,21 @@ const markersJson = JSON.stringify(
     box-shadow: var(--elevation-low);
     color: inherit;
     text-decoration: none;
-    transform: translate(-17px, -17px);
-    transition: padding 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+    /* --marker-scale shrinks heads at low zooms (set by the script); the
+       origin sits on the avatar's center so scaling doesn't shift it off
+       its placement point. */
+    transform-origin: 17px 17px;
+    transform: translate(var(--dx, 0px), var(--dy, 0px)) translate(-17px, -17px)
+      scale(calc(var(--marker-scale, 1) * var(--hover-scale, 1)));
+    transition: transform 0.35s cubic-bezier(0.22, 1, 0.36, 1),
+      opacity 0.2s ease, padding 0.35s cubic-bezier(0.22, 1, 0.36, 1),
       border-color 0.2s ease, box-shadow 0.2s ease;
+  }
+
+  /* No free spot: the head collapses away; the anchor dot stays. */
+  #globe :global(.marker-root--hidden .community-marker) {
+    opacity: 0;
+    pointer-events: none;
   }
 
   /* Expand the touch target without growing the visible marker. */
@@ -101,7 +125,11 @@ const markersJson = JSON.stringify(
   }
 
   /* Collapsed: zero width, fully clipped. Open: max-width slides the text
-     and icon out from behind the avatar. */
+     and icon out from behind the avatar. --details-w is measured per
+     marker by the script so the animation covers exactly the distance it
+     needs — a generic 260px target would make short names finish early
+     and feel abrupt. The details fade in a beat behind the slide (and
+     drop out faster on close) so text never floats in empty space. */
   #globe :global(.community-marker__details) {
     display: flex;
     align-items: center;
@@ -113,7 +141,14 @@ const markersJson = JSON.stringify(
       opacity 0.15s ease;
   }
 
+  /* Two custom properties, not one: the script only sets --hover-scale-max
+     once, on the #globe container (same zoom-based value for every
+     marker), since it doesn't know here which marker is open. This rule
+     is what actually turns growth on, scoped to the open marker alone —
+     every other marker's --hover-scale stays unset, defaulting to 1 in
+     the transform below. */
   #globe :global(.community-marker--open) {
+    --hover-scale: var(--hover-scale-max, 1);
     padding-right: var(--space-md);
     box-shadow: var(--elevation-regular);
   }
@@ -171,6 +206,10 @@ const markersJson = JSON.stringify(
 
   setWorkerUrl(workerUrl);
 
+  // ---------------------------------------------------------------------
+  // Setup: parse the server-rendered marker data and boot the map.
+  // ---------------------------------------------------------------------
+
   type Avatar = { url: string } | { initials: string; color: string };
   type CommunityMarker = {
     name: string;
@@ -184,11 +223,23 @@ const markersJson = JSON.stringify(
   const globeEl = document.getElementById("globe")!;
   const markers: CommunityMarker[] = JSON.parse(globeEl.dataset.markers ?? "[]");
 
+  // Globe diameter in px at a given zoom is 512 * 2^zoom / PI (Web
+  // Mercator tile math applied to the globe projection). Pick the zoom
+  // that makes the globe fill ~85% of the container's shorter side, so a
+  // narrow phone viewport and a wide desktop one both show a
+  // similarly-proportioned globe instead of one that's cropped or tiny.
+  function initialZoom(): number {
+    const side = Math.min(globeEl.clientWidth, globeEl.clientHeight);
+    const targetDiameter = side * 0.85;
+    const zoom = Math.log2((targetDiameter * Math.PI) / 512);
+    return Math.min(2.2, Math.max(0.6, zoom));
+  }
+
   const map = new Map({
     container: "globe",
     style: "/mapstyle.json",
     center: [-50, 30],
-    zoom: 1.5,
+    zoom: initialZoom(),
   });
 
   // Same glyph as icons/BlueskyIcon.astro, inlined for the DOM-built markers.
@@ -203,28 +254,218 @@ const markersJson = JSON.stringify(
   const canHover = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
   const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
 
+  // ---------------------------------------------------------------------
+  // Layout engine: every marker head is displaced from its anchor to a
+  // free spot chosen from a priority list of directions, re-evaluated on
+  // every map move. Heads that can't be placed collapse away, leaving
+  // just the anchor dot.
+  // ---------------------------------------------------------------------
+
+  type Entry = {
+    lngLat: [number, number];
+    outer: HTMLElement;
+    pill: HTMLElement;
+    dx: number;
+    dy: number;
+    hidden: boolean;
+    expandedW: number;
+  };
+
+  const entries: Entry[] = [];
+  let openEntry: Entry | null = null;
+
+  // Collapsed head: 28px avatar + 2×2px padding + 2×1px border.
+  const HEAD = 36;
+  const PAD = 1;
+  // Displacement search: a fine spiral outward from the anchor, so a
+  // colliding head moves only the minimum distance that clears the overlap
+  // and clusters pack tightly around their true locations.
+  const STEP = 3;
+  const MAX_R = 50;
+  const ANGLE_COUNT = 20;
+
+  type Rect = { x: number; y: number; w: number; h: number };
+
+  function collides(r: Rect, placed: Rect[]): boolean {
+    return placed.some(
+      (o) =>
+        r.x < o.x + o.w + PAD &&
+        r.x + r.w + PAD > o.x &&
+        r.y < o.y + o.h + PAD &&
+        r.y + r.h + PAD > o.y,
+    );
+  }
+
+  function expandedWidth(entry: Entry): number {
+    if (!entry.expandedW) {
+      const details = entry.pill.querySelector<HTMLElement>(".community-marker__details")!;
+      // scrollWidth sees the clipped content's full width; +12 ≈ the open
+      // state's extra padding. The exact width also drives the details'
+      // max-width transition so the slide animation lands precisely.
+      entry.expandedW = HEAD + details.scrollWidth + 12;
+      entry.pill.style.setProperty("--details-w", `${details.scrollWidth}px`);
+    }
+    return entry.expandedW;
+  }
+
+  // Heads render smaller at low zooms, where the whole globe is in view
+  // and full-size pills crowd it, but never shrink past MIN_MARKER_SCALE
+  // so they stay visible even fully zoomed out. The CSS scales the pills
+  // via --marker-scale (set once on the #globe container, inherited
+  // down); the collision rects follow the same factor via headRect().
+  const MIN_MARKER_SCALE = 0.15;
+  // Hover growth only makes sense zoomed out, where pills are tiny and
+  // need the extra emphasis; it interpolates away to 1 (no growth) by the
+  // same zoom the head reaches full size, so hover and idle scale meet at
+  // exactly full size instead of snapping.
+  const MAX_HOVER_SCALE = 1.5;
+  let markerScale = 1;
+  let hoverScale = MAX_HOVER_SCALE;
+
+  function updateScales() {
+    const ratio = Math.min(1, Math.max(0, map.getZoom()) / 4);
+    markerScale = MIN_MARKER_SCALE + (1 - MIN_MARKER_SCALE) * ratio;
+    hoverScale = MAX_HOVER_SCALE - (MAX_HOVER_SCALE - 1) * ratio;
+  }
+
+  function headRect(ax: number, ay: number, w: number, scale: number): Rect {
+    // (ax, ay) is where the avatar's center lands; an open card grows
+    // rightward from it.
+    const half = (HEAD / 2) * scale;
+    return { x: ax - half, y: ay - half, w: w * scale, h: HEAD * scale };
+  }
+
+  function place(
+    entry: Entry,
+    px: number,
+    py: number,
+    placed: Rect[],
+  ): { dx: number; dy: number; rect: Rect } | null {
+    const isOpen = entry === openEntry;
+    const w = isOpen ? expandedWidth(entry) : HEAD;
+    // An open marker also renders larger (CSS --hover-scale), so its
+    // reserved footprint must grow to match or neighbors can be placed
+    // where the visually-scaled pill actually overlaps them.
+    const scale = isOpen ? markerScale * hoverScale : markerScale;
+
+    // Placement is collision-only: a head clipped by the map edge is not a
+    // problem worth moving for, so it just overflows (the #globe container
+    // crops it) rather than being pushed inward.
+    const free = (dx: number, dy: number): Rect | null => {
+      const rect = headRect(px + dx, py + dy, w, scale);
+      return collides(rect, placed) ? null : rect;
+    };
+
+    // Home (undisplaced) always wins when it's free, so heads only
+    // displace while they actually collide, snapping straight back once
+    // space opens.
+    const home = free(0, 0);
+    if (home) return { dx: 0, dy: 0, rect: home };
+
+    // Otherwise spiral outward, nearest ring first. Within a ring, angles
+    // fan out from the current displacement direction so a head that must
+    // stay displaced doesn't swirl around its anchor between layouts.
+    const baseAngle =
+      entry.dx || entry.dy ? Math.atan2(entry.dy, entry.dx) : -Math.PI / 2;
+    for (let r = STEP; r <= MAX_R; r += STEP) {
+      for (let i = 0; i < ANGLE_COUNT; i++) {
+        // i steps 0, 1, 2, 3, … → k steps 0, +1, -1, +2, -2, … , alternating
+        // outward from baseAngle instead of sweeping one direction first.
+        const k = Math.ceil(i / 2) * (i % 2 ? 1 : -1);
+        const a = baseAngle + (k * 2 * Math.PI) / ANGLE_COUNT;
+        const dx = Math.cos(a) * r;
+        const dy = Math.sin(a) * r;
+        const rect = free(dx, dy);
+        if (rect) return { dx, dy, rect };
+      }
+    }
+    return null;
+  }
+
+  function applyPlacement(entry: Entry, dx: number, dy: number) {
+    entry.dx = dx;
+    entry.dy = dy;
+    entry.hidden = false;
+    entry.outer.classList.remove("marker-root--hidden");
+    entry.pill.style.setProperty("--dx", `${dx}px`);
+    entry.pill.style.setProperty("--dy", `${dy}px`);
+  }
+
+  function hidePlacement(entry: Entry) {
+    entry.hidden = true;
+    entry.outer.classList.add("marker-root--hidden");
+  }
+
   // MapLibre dims markers occluded by the globe to opacityWhenCovered (0.2
   // by default) rather than hiding them outright, so a faded marker is on
-  // the back and should be treated as invisible.
+  // the back and must be treated as invisible by both layout and auto-hover.
   function isOccluded(entry: Entry): boolean {
     return parseFloat(entry.outer.style.opacity || "1") < 0.9;
+  }
+
+  function layout() {
+    updateScales();
+    globeEl.style.setProperty("--marker-scale", `${markerScale}`);
+    globeEl.style.setProperty("--hover-scale-max", `${hoverScale}`);
+
+    const visible: { entry: Entry; p: { x: number; y: number } }[] = [];
+    for (const entry of entries) {
+      const p = map.project(entry.lngLat);
+      if (!Number.isFinite(p.x) || !Number.isFinite(p.y)) continue;
+
+      if (isOccluded(entry)) {
+        // A visibly-displaced marker rests back on its anchor while faded
+        // out; applyPlacement() would also reveal an already-hidden one,
+        // so only touch entries still shown.
+        if (!entry.hidden && (entry.dx || entry.dy)) applyPlacement(entry, 0, 0);
+        continue;
+      }
+      visible.push({ entry, p });
+    }
+
+    // The open card wins space first; the rest resolve top-to-bottom so
+    // results are stable frame to frame.
+    visible.sort((a, b) => {
+      if (a.entry === openEntry) return -1;
+      if (b.entry === openEntry) return 1;
+      return a.p.y - b.p.y || a.p.x - b.p.x;
+    });
+
+    const placed: Rect[] = [];
+    for (const { entry, p } of visible) {
+      const spot = place(entry, p.x, p.y, placed);
+      if (spot) {
+        applyPlacement(entry, spot.dx, spot.dy);
+        placed.push(spot.rect);
+      } else {
+        hidePlacement(entry);
+      }
+    }
+  }
+
+  let layoutQueued = false;
+  function scheduleLayout() {
+    if (layoutQueued) return;
+    layoutQueued = true;
+    requestAnimationFrame(() => {
+      layoutQueued = false;
+      layout();
+    });
   }
 
   // ---------------------------------------------------------------------
   // Marker construction & interaction. Hover opens on mouse devices; on
   // touch, the first tap opens and the second follows the link. Only one
-  // marker is ever open at a time.
+  // marker is ever open (single-focus), and opening re-runs layout so
+  // neighbours make room for the card.
   // ---------------------------------------------------------------------
-
-  type Entry = { lngLat: [number, number]; outer: HTMLElement; pill: HTMLElement };
-  const entries: Entry[] = [];
-  let openEntry: Entry | null = null;
 
   function setOpen(entry: Entry, open: boolean) {
     if (open && openEntry && openEntry !== entry) setOpen(openEntry, false);
     openEntry = open ? entry : openEntry === entry ? null : openEntry;
     entry.pill.classList.toggle("community-marker--open", open);
     entry.outer.style.zIndex = open ? "10" : "";
+    scheduleLayout();
   }
 
   function buildEntry(community: CommunityMarker): Entry {
@@ -269,6 +510,10 @@ const markersJson = JSON.stringify(
       lngLat: [community.coordinates[1], community.coordinates[0]],
       outer,
       pill,
+      dx: 0,
+      dy: 0,
+      hidden: true,
+      expandedW: 0,
     };
 
     if (canHover) {
@@ -296,15 +541,21 @@ const markersJson = JSON.stringify(
         .setLngLat(entry.lngLat)
         .addTo(map);
     }
+    layout();
   }
 
-  // Tapping anywhere else on the map closes the opened marker.
-  if (!canHover) map.on("click", () => openEntry && setOpen(openEntry, false));
-
+  // Wire up the map itself: build markers once the style loads, close the
+  // open card on background taps (touch only), and re-place heads
+  // continuously as the camera moves (pan, zoom, the idle spin below) —
+  // rAF-throttled via scheduleLayout, cheap at this marker count.
   map.on("style.load", () => {
     map.setProjection({ type: "globe" });
     addMarkers();
   });
+  if (!canHover) map.on("click", () => openEntry && setOpen(openEntry, false));
+  map.on("move", scheduleLayout);
+  map.on("moveend", scheduleLayout);
+  map.on("resize", scheduleLayout);
 
   // ---------------------------------------------------------------------
   // Idle spin: drift the globe east while nothing else is happening,
@@ -323,6 +574,8 @@ const markersJson = JSON.stringify(
   function spinGlobe() {
     if (paused) return;
 
+    // Speed ramps down linearly from full at zoom 0 to a stop at
+    // maxSpinZoom, so it tapers off continuously rather than snapping.
     const zoom = map.getZoom();
     const speed = Math.min(1, (maxSpinZoom - zoom) / maxSpinZoom);
     if (speed <= 0) return;
@@ -332,11 +585,21 @@ const markersJson = JSON.stringify(
     map.easeTo({ center, duration: 1000, easing: (n) => n });
   }
 
+  // Any interaction pauses the spin and re-arms a resume timer, rather than
+  // tracking matched start/end pairs per gesture (which don't pair reliably
+  // for touch and previously caused a frozen map). No manual map.stop() here:
+  // MapLibre's own drag/zoom handlers already interrupt an in-flight easeTo
+  // safely when a real interaction starts.
   function pauseSpin() {
     paused = true;
     clearTimeout(resumeTimer);
     resumeTimer = setTimeout(() => {
       paused = false;
+      // Deferred a frame: calling spinGlobe() straight from the timeout
+      // can land mid-render (MapLibre still finishing its own animation
+      // frame right after a scroll/zoom burst), which throws inside
+      // MapLibre's task queue ("Attempting to run(), but is already
+      // running."). requestAnimationFrame waits for that frame to clear.
       requestAnimationFrame(spinGlobe);
     }, RESUME_DELAY_MS);
   }
@@ -345,6 +608,9 @@ const markersJson = JSON.stringify(
     map.on("moveend", spinGlobe);
     map.on("load", spinGlobe);
 
+    // pointerdown catches taps/clicks/drag-start; zoomstart catches
+    // wheel/pinch zoom (no pointerdown fires for those); dragend/zoomend
+    // re-arm the timer so long gestures don't get resumed on top of mid-way.
     globeEl.addEventListener("pointerdown", pauseSpin);
     map.on("zoomstart", pauseSpin);
     map.on("dragend", pauseSpin);
@@ -368,7 +634,7 @@ const markersJson = JSON.stringify(
       const vw = globeEl.clientWidth;
       const vh = globeEl.clientHeight;
       const visible = entries.filter((entry) => {
-        if (isOccluded(entry)) return false;
+        if (entry.hidden || isOccluded(entry)) return false;
         const p = map.project(entry.lngLat);
         return p.x >= 0 && p.x <= vw && p.y >= 0 && p.y <= vh;
       });
