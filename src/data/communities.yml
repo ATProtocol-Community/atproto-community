@@ -1,6 +1,7 @@
 - name: ATProto Amsterdam
   handle: atproto.amsterdam
   location: Amsterdam, NL
+  coordinates: [52.3676, 4.9041]
   region: Europe
   description: Amsterdam ATProtocol user group
   bluesky: https://bsky.app/profile/atproto.amsterdam
@@ -8,6 +9,7 @@
 - name: ATProto Barcelona
   handle: atproto.barcelona
   location: Barcelona, ES
+  coordinates: [41.3874, 2.1686]
   region: Europe
   description: Barcelona ATProtocol user group
   bluesky: https://bsky.app/profile/atproto.barcelona
@@ -15,6 +17,7 @@
 - name: ATProto Bay Area
   handle: bayarea.atproto.camp
   location: Bay Area, CA
+  coordinates: [37.7749, -122.4194]
   region: North America — USA
   description: Bay Area ATProtocol meetup group
   bluesky: https://bsky.app/profile/bayarea.atproto.camp
@@ -22,6 +25,7 @@
 - name: ATProto Berlin
   handle: atproto.berlin
   location: Berlin, DE
+  coordinates: [52.5200, 13.4050]
   region: Europe
   description: Berlin ATProtocol user group
   bluesky: https://bsky.app/profile/atproto.berlin
@@ -29,6 +33,7 @@
 - name: ATProto Boston
   handle: atproto.boston
   location: Boston, MA
+  coordinates: [42.3601, -71.0589]
   region: North America — USA
   description: Boston ATProtocol user group
   bluesky: https://bsky.app/profile/atproto.boston
@@ -36,6 +41,7 @@
 - name: ATProto Colorado
   handle: colorado.atprotocol.space
   location: Colorado, US
+  coordinates: [39.5501, -105.7821]
   region: North America — USA
   description: Colorado ATProtocol user group
   bluesky: https://bsky.app/profile/colorado.atprotocol.space
@@ -43,6 +49,7 @@
 - name: ATBrasil
   handle: atproto.com.br
   location: Brazil
+  coordinates: [-14.2350, -51.9253]
   region: South America
   description: Brazil ATProtocol user group
   bluesky: https://bsky.app/profile/atproto.com.br
@@ -57,6 +64,7 @@
 - name: ATProto France
   handle: atproto.fr
   location: France
+  coordinates: [46.2276, 2.2137]
   region: Europe
   description: France ATProtocol user group
   bluesky: https://bsky.app/profile/atproto.fr
@@ -64,6 +72,7 @@
 - name: ATProto Kraków
   handle: atproto.krakow.pl
   location: Kraków, PL
+  coordinates: [50.0647, 19.9450]
   region: Europe
   description: Kraków ATProtocol user group
   bluesky: https://bsky.app/profile/atproto.krakow.pl
@@ -71,6 +80,7 @@
 - name: ATProto LA
   handle: atproto.la
   location: Los Angeles, CA
+  coordinates: [34.0522, -118.2437]
   region: North America — USA
   description: Los Angeles ATProtocol user group
   bluesky: https://bsky.app/profile/atproto.la
@@ -78,6 +88,7 @@
 - name: ATProto Lille
   handle: lille.atproto.fr
   location: Lille, FR
+  coordinates: [50.6292, 3.0573]
   region: Europe
   description: Lille ATProtocol user group
   bluesky: https://bsky.app/profile/lille.atproto.fr
@@ -85,6 +96,7 @@
 - name: ATProto London
   handle: atproto.london
   location: London, UK
+  coordinates: [51.5072, -0.1276]
   region: Europe
   description: London ATProtocol user group
   bluesky: https://bsky.app/profile/atproto.london
@@ -92,6 +104,7 @@
 - name: ATProto Montreal
   handle: montreal.atproto.camp
   location: Montreal, QC
+  coordinates: [45.5017, -73.5673]
   region: North America — Canada
   description: Montreal ATProtocol user group
   bluesky: https://bsky.app/profile/montreal.atproto.camp
@@ -99,6 +112,7 @@
 - name: Nashproto
   handle: nashproto.com
   location: Nashville, TN
+  coordinates: [36.1627, -86.7816]
   region: North America — USA
   description: Nashville ATProtocol user group
   bluesky: https://bsky.app/profile/nashproto.com
@@ -106,6 +120,7 @@
 - name: ATProto Norway
   handle: atproto.no
   location: Norway
+  coordinates: [60.4720, 8.4689]
   region: Europe
   description: Norway ATProtocol user group
   bluesky: https://bsky.app/profile/atproto.no
@@ -113,6 +128,7 @@
 - name: ATProto NYC
   handle: atproto.nyc
   location: New York City, NY
+  coordinates: [40.7128, -74.0060]
   region: North America — USA
   description: New York City ATProtocol user group
   bluesky: https://bsky.app/profile/atproto.nyc
@@ -120,6 +136,7 @@
 - name: ATProto PDX
   handle: pdx.atproto.camp
   location: Portland, OR
+  coordinates: [45.5152, -122.6784]
   region: North America — USA
   description: Portland ATProtocol user group
   bluesky: https://bsky.app/profile/pdx.atproto.camp
@@ -127,6 +144,7 @@
 - name: Richmond AT://Community
   handle: richmond.atmosphere.community
   location: Richmond, VA, US
+  coordinates: [37.5407, -77.4360]
   region: North America — USA
   description: An ATProto Community for Richmond, VA
   bluesky: https://bsky.app/profile/richmond.atmosphere.community
@@ -134,6 +152,7 @@
 - name: ATProto Seattle
   handle: seattle.atprotocol.community
   location: Seattle, WA
+  coordinates: [47.6062, -122.3321]
   region: North America — USA
   description: Seattle ATProtocol user group
   bluesky: https://bsky.app/profile/seattle.atprotocol.community
@@ -141,6 +160,7 @@
 - name: ATProto Toronto
   handle: atproto.to
   location: Toronto, ON
+  coordinates: [43.6532, -79.3832]
   region: North America — Canada
   description: Toronto ATProtocol user group
   bluesky: https://bsky.app/profile/atproto.to
@@ -148,6 +168,7 @@
 - name: ATProto Vancouver
   handle: vancouver.atprotocol.community
   location: Vancouver, BC
+  coordinates: [49.2827, -123.1207]
   region: North America — Canada
   description: Vancouver ATProtocol user group
   bluesky: https://bsky.app/profile/vancouver.atprotocol.community
