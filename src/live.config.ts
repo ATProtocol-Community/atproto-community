@@ -19,6 +19,7 @@ interface CommunityDefinition {
   name: string;
   handle: string;
   location: string;
+  coordinates?: [number, number];
   region?: string;
   description?: string;
   bluesky?: string;
@@ -224,6 +225,7 @@ const communities = defineLiveCollection({
     name: z.string(),
     handle: z.string(),
     location: z.string(),
+    coordinates: z.tuple([z.number(), z.number()]).optional(),
     region: z.string().optional(),
     description: z.string().optional(),
     bluesky: z.string().optional(),
