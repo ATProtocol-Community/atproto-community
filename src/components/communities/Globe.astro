@@ -201,6 +201,14 @@ const markersJson = JSON.stringify(
   }
 
   const canHover = window.matchMedia("(hover: hover) and (pointer: fine)").matches;
+  const reduceMotion = window.matchMedia("(prefers-reduced-motion: reduce)").matches;
+
+  // MapLibre dims markers occluded by the globe to opacityWhenCovered (0.2
+  // by default) rather than hiding them outright, so a faded marker is on
+  // the back and should be treated as invisible.
+  function isOccluded(entry: Entry): boolean {
+    return parseFloat(entry.outer.style.opacity || "1") < 0.9;
+  }
 
   // ---------------------------------------------------------------------
   // Marker construction & interaction. Hover opens on mouse devices; on
@@ -208,7 +216,8 @@ const markersJson = JSON.stringify(
   // marker is ever open at a time.
   // ---------------------------------------------------------------------
 
-  type Entry = { outer: HTMLElement; pill: HTMLElement };
+  type Entry = { lngLat: [number, number]; outer: HTMLElement; pill: HTMLElement };
+  const entries: Entry[] = [];
   let openEntry: Entry | null = null;
 
   function setOpen(entry: Entry, open: boolean) {
@@ -256,7 +265,11 @@ const markersJson = JSON.stringify(
 
     outer.append(pill);
 
-    const entry: Entry = { outer, pill };
+    const entry: Entry = {
+      lngLat: [community.coordinates[1], community.coordinates[0]],
+      outer,
+      pill,
+    };
 
     if (canHover) {
       pill.addEventListener("mouseenter", () => setOpen(entry, true));
@@ -278,8 +291,9 @@ const markersJson = JSON.stringify(
   function addMarkers() {
     for (const community of markers) {
       const entry = buildEntry(community);
+      entries.push(entry);
       new Marker({ element: entry.outer, anchor: "center" })
-        .setLngLat([community.coordinates[1], community.coordinates[0]])
+        .setLngLat(entry.lngLat)
         .addTo(map);
     }
   }
@@ -291,4 +305,89 @@ const markersJson = JSON.stringify(
     map.setProjection({ type: "globe" });
     addMarkers();
   });
+
+  // ---------------------------------------------------------------------
+  // Idle spin: drift the globe east while nothing else is happening,
+  // slowing in proportion to zoom until it stops at maxSpinZoom (past
+  // that point the whole globe no longer fits on screen, so a lateral
+  // drift stops reading as "spinning" and starts reading as "panning").
+  // ---------------------------------------------------------------------
+
+  const secondsPerRevolution = 180;
+  const maxSpinZoom = 6;
+
+  const RESUME_DELAY_MS = 1000;
+  let paused = false;
+  let resumeTimer: ReturnType<typeof setTimeout> | undefined;
+
+  function spinGlobe() {
+    if (paused) return;
+
+    const zoom = map.getZoom();
+    const speed = Math.min(1, (maxSpinZoom - zoom) / maxSpinZoom);
+    if (speed <= 0) return;
+
+    const center = map.getCenter();
+    center.lng += (360 / secondsPerRevolution) * speed;
+    map.easeTo({ center, duration: 1000, easing: (n) => n });
+  }
+
+  function pauseSpin() {
+    paused = true;
+    clearTimeout(resumeTimer);
+    resumeTimer = setTimeout(() => {
+      paused = false;
+      requestAnimationFrame(spinGlobe);
+    }, RESUME_DELAY_MS);
+  }
+
+  if (!reduceMotion) {
+    map.on("moveend", spinGlobe);
+    map.on("load", spinGlobe);
+
+    globeEl.addEventListener("pointerdown", pauseSpin);
+    map.on("zoomstart", pauseSpin);
+    map.on("dragend", pauseSpin);
+    map.on("zoomend", pauseSpin);
+  }
+
+  // ---------------------------------------------------------------------
+  // Ambient auto-hover: while the globe idles, open a random on-screen
+  // marker for a second, rest two, then pick another — a rolling tour of
+  // the communities as the globe spins. It stands down while the user is
+  // interacting (spin paused), has a marker open themselves, or the tab
+  // is in the background, and is off under reduced motion like the spin.
+  // ---------------------------------------------------------------------
+
+  const AUTO_OPEN_MS = 1000;
+  const AUTO_REST_MS = 2000;
+  let autoLast: Entry | null = null;
+
+  function autoHoverTick() {
+    if (!paused && !openEntry && !document.hidden) {
+      const vw = globeEl.clientWidth;
+      const vh = globeEl.clientHeight;
+      const visible = entries.filter((entry) => {
+        if (isOccluded(entry)) return false;
+        const p = map.project(entry.lngLat);
+        return p.x >= 0 && p.x <= vw && p.y >= 0 && p.y <= vh;
+      });
+      // Avoid featuring the same marker twice in a row when possible.
+      const pool = visible.length > 1 ? visible.filter((e) => e !== autoLast) : visible;
+      if (pool.length) {
+        const pick = pool[Math.floor(Math.random() * pool.length)];
+        autoLast = pick;
+        setOpen(pick, true);
+        setTimeout(() => {
+          // Leave it open if the user meanwhile hovered this very marker.
+          if (openEntry === pick && !pick.pill.matches(":hover")) {
+            setOpen(pick, false);
+          }
+        }, AUTO_OPEN_MS);
+      }
+    }
+    setTimeout(autoHoverTick, AUTO_OPEN_MS + AUTO_REST_MS);
+  }
+
+  if (!reduceMotion) setTimeout(autoHoverTick, AUTO_OPEN_MS + AUTO_REST_MS);
 </script>
