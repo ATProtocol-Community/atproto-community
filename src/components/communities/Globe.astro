@@ -1,0 +1,31 @@
+<div id="globe"></div>
+
+<style>
+  #globe {
+    width: 100%;
+    height: 500px;
+    margin-top: var(--space-lg);
+    margin-bottom: var(--space-xl);
+    border-radius: var(--radius-lg);
+    overflow: hidden;
+  }
+</style>
+
+<script>
+  import "maplibre-gl/dist/maplibre-gl.css";
+  import { Map, setWorkerUrl } from "maplibre-gl";
+  import workerUrl from "maplibre-gl/dist/maplibre-gl-worker.mjs?worker&url";
+
+  setWorkerUrl(workerUrl);
+
+  const map = new Map({
+    container: "globe",
+    style: "/mapstyle.json",
+    center: [-50, 30],
+    zoom: 1.5,
+  });
+
+  map.on("style.load", () => {
+    map.setProjection({ type: "globe" });
+  });
+</script>

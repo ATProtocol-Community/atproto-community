@@ -6,6 +6,7 @@ import Footer from "../components/layout/Footer.astro";
 import Hero from "../components/layout/Hero.astro";
 import PostCard from "../components/content/PostCard.astro";
 import EventCard from "../components/events/EventCard.astro";
+import Globe from "../components/communities/Globe.astro";
 import CommunityCard from "../components/communities/CommunityCard.astro";
 import GetInvolved from "../components/layout/GetInvolved.astro";
 import { getLiveCollection } from "astro:content";
@@ -83,6 +84,7 @@ const events = (eventsResult.entries ?? [])
         </h2>
         <a href="/communities" class="section__more">See all →</a>
       </div>
+      <Globe />
       <div class="community-row">
         {
           communities

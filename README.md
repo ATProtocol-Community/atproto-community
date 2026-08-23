@@ -35,6 +35,9 @@ The site deploys to GitHub Pages automatically via the workflow in `.github/work
 ```
 src/
 ├── components/        # Astro components (Header, Footer, Hero, cards)
+│   └── communities/
+│       ├── CommunityCard.astro
+│       └── Globe.astro # Interactive MapLibre globe
 ├── data/
 │   ├── apps.yml       # App directory listings
 │   └── communities.yml # Community group listings
@@ -52,6 +55,9 @@ src/
 │   └── events.astro   # Events listing
 └── styles/
     └── global.css     # Design system (tokens, reset, utilities)
+
+public/
+└── mapstyle.json      # MapLibre style used by the globe
 ```
 
 ## Adding content
@@ -69,6 +75,8 @@ Edit `src/data/communities.yml` and add an entry:
 ```
 
 Community accounts are also used to fetch events — any `community.lexicon.calendar.event` records on the account's PDS will automatically appear on the Events page and homepage.
+
+`coordinates` is an optional `[latitude, longitude]` pair. Communities with coordinates get a marker on the homepage globe (`src/components/communities/Globe.astro`); communities without them are omitted from the globe but still appear in the community listing.
 
 ## Data sources
 

@@ -3,6 +3,7 @@ import Base from "../layouts/Base.astro";
 import Header from "../components/layout/Header.astro";
 import Footer from "../components/layout/Footer.astro";
 import CommunityCard from "../components/communities/CommunityCard.astro";
+import Globe from "../components/communities/Globe.astro";
 import { getLiveCollection } from "astro:content";
 
 const communitiesResult = await getLiveCollection("communities");
@@ -34,7 +35,7 @@ const regions = [...grouped.keys()].sort(
         AT Protocol communities around the world. Each group is run independently by local organizers.
         Find one near you or <a href="https://bsky.app/profile/ngerakines.me" rel="noopener noreferrer" target="_blank">start your own</a>.
       </p>
-
+      <Globe />
       {regions.map((region) => (
         <section class="region-group">
           <h2 class="region-heading">{region}</h2>
